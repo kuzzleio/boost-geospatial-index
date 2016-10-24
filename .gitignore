@@ -8,15 +8,6 @@
 *.gch
 *.pch
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
 # Compiled Static libraries
 *.lai
 *.la
@@ -27,3 +18,9 @@
 *.exe
 *.out
 *.app
+
+# node-gyp
+build/
+
+# dependencies
+node_modules/
