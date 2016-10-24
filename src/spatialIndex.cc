@@ -25,7 +25,7 @@ std::unordered_map< std::shared_ptr<std::string>, std::shared_ptr<Shape> > repos
  * addBox(id, [min_lat, min_lon, max_lat, max_lon])
  */
 NAN_METHOD(addBBox) {
-  Nan::Utf8String *argId;
+  Nan::HandleScope scope;
   v8::Local<v8::Array> coords;
 
   // Checks the id parameter validity
@@ -34,9 +34,8 @@ NAN_METHOD(addBBox) {
     return;
   }
 
-  argId = new Nan::Utf8String(info[0]);
-  std::shared_ptr<std::string> id(new std::string(*id));
-  delete argId;
+  v8::String::Utf8Value argId(info[0]);
+  std::shared_ptr<std::string> id(new std::string(*argId));
 
   // Checks the box coordinates parameter validity
   if (info[1]->IsUndefined() || !info[1]->IsArray()) {
@@ -69,6 +68,7 @@ NAN_METHOD(addBBox) {
  * Returns an array of matching ids as strings
  */
 NAN_METHOD(queryPoint) {
+  Nan::HandleScope scope;
   v8::Local<v8::Array> result = Nan::New<v8::Array>();
   v8::Local<v8::Number> lat, lon;
 
