@@ -11,7 +11,11 @@ Shape::Shape(std::shared_ptr<std::string> id, std::shared_ptr<box> b) {
 bool Shape::covered(point const& p) {
   switch(_type) {
     case ShapeType::bbox:
-      return bg::covered_by(p, *_box);
+      /*
+       the index handles bounding boxes, and already retrieves covering
+       boxes, so there is no need for further calculation
+       */
+      return true;
   }
 
   return false;
