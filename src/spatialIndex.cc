@@ -64,29 +64,24 @@ NAN_METHOD(addBBox) {
 
 /*
  * Gets all ids embedding the provided point coordinates
- * queryPoint([lat, lon])
+ * queryPoint(lat, lon)
  *
  * Returns an array of matching ids as strings
  */
 NAN_METHOD(queryPoint) {
-  v8::Local<v8::Array>
-    result = Nan::New<v8::Array>(),
-    input;
+  v8::Local<v8::Array> result = Nan::New<v8::Array>();
+  v8::Local<v8::Number> lat, lon;
 
   // Checks the point coordinates parameter validity
-  if (info[0]->IsUndefined() || !info[0]->IsArray()) {
+  if (info[0]->IsUndefined() || info[1]->IsUndefined() || !info[0]->IsNumber() || !info[1]->IsNumber()) {
     info.GetReturnValue().Set(result);
     return;
   }
 
-  input = info[0].As<v8::Array>();
+  lat = info[0].As<v8::Number>();
+  lon = info[1].As<v8::Number>();
 
-  if (input->Length() != 2) {
-    info.GetReturnValue().Set(result);
-    return;
-  }
-
-  point coordinates(input->Get(0)->ToNumber()->Value(), input->Get(1)->ToNumber()->Value());
+  point coordinates(lat->Value(), lon->Value());
   std::vector<treeValue> found;
   rtree.query(bgi::covers(coordinates), std::back_inserter(found));
 
