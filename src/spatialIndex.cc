@@ -36,7 +36,7 @@ NAN_METHOD(SpatialIndex::New) {
     const int argc = 1;
     v8::Local<v8::Value> argv[argc] = {info[0]};
     v8::Local<v8::Function> cons = Nan::New(constructor);
-    info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+    info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
   }
 }
 
@@ -72,8 +72,8 @@ NAN_METHOD(SpatialIndex::addBBox) {
   }
 
   std::shared_ptr<box> bbox(new box(
-    point(coords->Get(0)->ToNumber()->Value(), coords->Get(1)->ToNumber()->Value()),
-    point(coords->Get(2)->ToNumber()->Value(), coords->Get(3)->ToNumber()->Value())
+    point(Nan::To<double>(coords->Get(0)).FromJust(), Nan::To<double>(coords->Get(1)).FromJust()),
+    point(Nan::To<double>(coords->Get(2)).FromJust(), Nan::To<double>(coords->Get(3)).FromJust())
   ));
 
   std::shared_ptr<Shape> shape(new Shape(id, bbox));
