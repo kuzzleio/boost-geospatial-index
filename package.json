@@ -1,9 +1,9 @@
 {
-  "name": "boost-spatial-index",
+  "name": "boost-geospatial-index",
   "main": "index.js",
   "version": "0.0.1",
   "author": "The Kuzzle Team <support@kuzzle.io>",
-  "description": "A bridge to the C++ boost::geometry library, allowing to index and query 2D shapes",
+  "description": "A bridge to the C++ boost::geometry library, allowing to index and query geospatial shapes",
   "keywords": [
     "rtree",
     "rstar",
@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/kuzzleio/boost-spatial-index.git"
+    "url": "git://github.com/kuzzleio/boost-geospatial-index.git"
   },
   "dependencies": {
     "bindings": "^1.2.1",
