@@ -2,10 +2,11 @@
 
 namespace bg = boost::geometry;
 
-Shape::Shape(std::shared_ptr<std::string> id, std::shared_ptr<box> b) {
+Shape::Shape(std::string id, std::shared_ptr<box> b) {
   _type = ShapeType::bbox;
   _id = id;
   _box = b;
+  _envelope = b;
 }
 
 bool Shape::covered(point const& p) {
@@ -22,5 +23,9 @@ bool Shape::covered(point const& p) {
 }
 
 const char *Shape::getId() {
-  return _id->c_str();
+  return _id.c_str();
+}
+
+box Shape::getEnvelope() {
+  return *_envelope;
 }

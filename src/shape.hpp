@@ -12,14 +12,16 @@ typedef boost::geometry::model::box<point> box;
 
 class Shape {
   protected:
-    std::shared_ptr<std::string> _id;
+    std::string _id;
     ShapeType _type;
     std::shared_ptr<box> _box;
+    std::shared_ptr<box> _envelope;
 
   public:
-    Shape(std::shared_ptr<std::string> id, std::shared_ptr<box> b);
+    Shape(std::string id, std::shared_ptr<box> b);
     bool covered(point const& p);
     const char *getId();
+    box getEnvelope();
 };
 
 #endif

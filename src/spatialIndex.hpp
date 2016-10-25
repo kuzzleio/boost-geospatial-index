@@ -21,16 +21,21 @@ class SpatialIndex : public Nan::ObjectWrap {
     explicit SpatialIndex();
     ~SpatialIndex();
 
-    static NAN_METHOD(addBBox);
-    static NAN_METHOD(queryPoint);
+    // Node bridge handling
     static Nan::Persistent<v8::Function> constructor;
     static NAN_METHOD(New);
+
+    // spatial index related methods
+    static NAN_METHOD(addBBox);
+    static NAN_METHOD(queryPoint);
+    static NAN_METHOD(remove);
+
 
     // The spatial index containing MBRs (minimum bounding rectangles)
     boost::geometry::index::rtree< treeValue, boost::geometry::index::rstar<16> > rtree;
 
     // Map geometry objects with their corresponding string id
-    std::unordered_map< std::shared_ptr<std::string>, std::shared_ptr<Shape> > repository;
+    std::unordered_map<std::string, std::shared_ptr<Shape> > repository;
 };
 
 #endif

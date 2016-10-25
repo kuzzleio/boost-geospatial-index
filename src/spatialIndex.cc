@@ -15,6 +15,8 @@ NAN_MODULE_INIT(SpatialIndex::init) {
 
   Nan::SetPrototypeMethod(tpl, "addBBox", addBBox);
   Nan::SetPrototypeMethod(tpl, "queryPoint", queryPoint);
+  Nan::SetPrototypeMethod(tpl, "remove", remove);
+
   constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
   Nan::Set(target, Nan::New("SpatialIndex").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
@@ -56,7 +58,7 @@ NAN_METHOD(SpatialIndex::addBBox) {
   }
 
   v8::String::Utf8Value argId(info[0]);
-  std::shared_ptr<std::string> id(new std::string(*argId));
+  std::string id(*argId);
 
   // Checks the box coordinates parameter validity
   if (info[1]->IsUndefined() || !info[1]->IsArray()) {
@@ -114,6 +116,35 @@ NAN_METHOD(SpatialIndex::queryPoint) {
   }
 
   info.GetReturnValue().Set(result);
+}
+
+/*
+ * Removes an object from the index
+ * remove(id)
+ *
+ * Returns a boolean
+ */
+NAN_METHOD(SpatialIndex::remove) {
+  Nan::HandleScope scope;
+  SpatialIndex *spi = Nan::ObjectWrap::Unwrap<SpatialIndex>(info.This());
+
+  if (info[0]->IsUndefined() || !info[0]->IsString()) {
+    info.GetReturnValue().Set(false);
+    return;
+  }
+
+  v8::String::Utf8Value id(info[0]);
+  std::unordered_map<std::string, std::shared_ptr<Shape> >::const_iterator found = spi->repository.find(*id);
+
+  if (found == spi->repository.end()) {
+    info.GetReturnValue().Set(false);
+    return;
+  }
+
+  spi->rtree.remove(std::make_pair(found->second->getEnvelope(), found->second));
+  spi->repository.erase(*id);
+
+  info.GetReturnValue().Set(true);
 }
 
 NAN_MODULE_INIT(init) {

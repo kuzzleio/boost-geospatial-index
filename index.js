@@ -62,4 +62,18 @@ BoostSpatialIndex.prototype.queryPoint = function queryPoint(lat, lon) {
   return this.spatialIndex.queryPoint(lat, lon);
 }
 
+/**
+ * Removes an id from the spatial index
+ *
+ * @param {string} id - shape identifier to remove
+ * @return {boolean}
+ */
+BoostSpatialIndex.prototype.remove = function remove(id) {
+  if (!id || typeof id !== 'string' || id.length === 0) {
+    throw new Error('Invalid id parameter');
+  }
+
+  return this.spatialIndex.remove(id);
+}
+
 module.exports = BoostSpatialIndex;
