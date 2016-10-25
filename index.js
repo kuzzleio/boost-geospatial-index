@@ -1,6 +1,10 @@
-var boostbinding = require('bindings')('BoostSpatialIndex');
+var BSI = require('bindings')('BoostSpatialIndex');
 
+/**
+ * @constructor
+ */
 function BoostSpatialIndex() {
+  this.spatialIndex = new BSI.SpatialIndex();
   return this;
 }
 
@@ -32,7 +36,7 @@ BoostSpatialIndex.prototype.addBoundingBox = function addBoundingBox(id, coordin
     throw new Error('Invalid "coordinates" parameter: must be an array containing numbers');
   }
 
-  return boostbinding.addBBox(id, coordinates);
+  return this.spatialIndex.addBBox(id, coordinates);
 }
 
 /**
@@ -55,7 +59,7 @@ BoostSpatialIndex.prototype.queryPoint = function queryPoint(lat, lon) {
     throw new Error('lat and lon parameters must be numbers');
   }
 
-  return boostbinding.queryPoint(lat, lon);
+  return this.spatialIndex.queryPoint(lat, lon);
 }
 
 module.exports = BoostSpatialIndex;

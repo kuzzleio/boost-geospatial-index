@@ -1,31 +1,52 @@
-#include <v8.h>
-#include <node.h>
-#include <nan.h>
-#include <unordered_map>
-#include <vector>
-#include <string>
-#include <boost/geometry.hpp>
-#include <boost/geometry/index/rtree.hpp>
-#include "shape.hpp"
+#include "spatialIndex.hpp"
 
 namespace bg = boost::geometry;
 namespace bgi = boost::geometry::index;
 
-// shortcuts
-typedef std::pair<box, std::shared_ptr<Shape>> treeValue;
+Nan::Persistent<v8::Function> SpatialIndex::constructor;
 
-// The spatial index containing MBRs (minimum bounding rectangles)
-bgi::rtree< treeValue, bgi::rstar<16> > rtree;
+/*
+ * Module initialization
+ */
+NAN_MODULE_INIT(SpatialIndex::init) {
+  v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
+  tpl->SetClassName(Nan::New("SpatialIndex").ToLocalChecked());
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-// Map geometry objects with their corresponding string id
-std::unordered_map< std::shared_ptr<std::string>, std::shared_ptr<Shape> > repository;
+  Nan::SetPrototypeMethod(tpl, "addBBox", addBBox);
+  Nan::SetPrototypeMethod(tpl, "queryPoint", queryPoint);
+  constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
+  Nan::Set(target, Nan::New("SpatialIndex").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
+}
+
+SpatialIndex::SpatialIndex() {
+
+}
+
+SpatialIndex::~SpatialIndex() {
+
+}
+
+NAN_METHOD(SpatialIndex::New) {
+  if (info.IsConstructCall()) {
+    SpatialIndex *obj = new SpatialIndex();
+    obj->Wrap(info.This());
+    info.GetReturnValue().Set(info.This());
+  } else {
+    const int argc = 1;
+    v8::Local<v8::Value> argv[argc] = {info[0]};
+    v8::Local<v8::Function> cons = Nan::New(constructor);
+    info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+  }
+}
 
 /*
  * Adds a bounding box to the tree
  * addBox(id, [min_lat, min_lon, max_lat, max_lon])
  */
-NAN_METHOD(addBBox) {
+NAN_METHOD(SpatialIndex::addBBox) {
   Nan::HandleScope scope;
+  SpatialIndex *spi = Nan::ObjectWrap::Unwrap<SpatialIndex>(info.This());
   v8::Local<v8::Array> coords;
 
   // Checks the id parameter validity
@@ -57,8 +78,8 @@ NAN_METHOD(addBBox) {
 
   std::shared_ptr<Shape> shape(new Shape(id, bbox));
 
-  rtree.insert(std::make_pair(*bbox, shape));
-  repository.insert(std::make_pair(id, shape));
+  spi->rtree.insert(std::make_pair(*bbox, shape));
+  spi->repository.insert(std::make_pair(id, shape));
 }
 
 /*
@@ -67,8 +88,9 @@ NAN_METHOD(addBBox) {
  *
  * Returns an array of matching ids as strings
  */
-NAN_METHOD(queryPoint) {
+NAN_METHOD(SpatialIndex::queryPoint) {
   Nan::HandleScope scope;
+  SpatialIndex *spi = Nan::ObjectWrap::Unwrap<SpatialIndex>(info.This());
   v8::Local<v8::Array> result = Nan::New<v8::Array>();
   v8::Local<v8::Number> lat, lon;
 
@@ -83,7 +105,7 @@ NAN_METHOD(queryPoint) {
 
   point coordinates(lat->Value(), lon->Value());
   std::vector<treeValue> found;
-  rtree.query(bgi::covers(coordinates), std::back_inserter(found));
+  spi->rtree.query(bgi::covers(coordinates), std::back_inserter(found));
 
   for(std::vector<treeValue>::iterator it = found.begin(); it != found.end(); ++it) {
     if (it->second->covered(coordinates)) {
@@ -95,8 +117,7 @@ NAN_METHOD(queryPoint) {
 }
 
 NAN_MODULE_INIT(init) {
-  Nan::Set(target, Nan::New("addBBox").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(addBBox)).ToLocalChecked());
-  Nan::Set(target, Nan::New("queryPoint").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(queryPoint)).ToLocalChecked());
+  SpatialIndex::init(target);
 }
 
 NODE_MODULE(BoostSpatialIndex, init)
