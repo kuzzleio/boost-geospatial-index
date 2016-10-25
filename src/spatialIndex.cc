@@ -14,6 +14,9 @@ NAN_MODULE_INIT(SpatialIndex::init) {
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
   Nan::SetPrototypeMethod(tpl, "addBBox", addBBox);
+  Nan::SetPrototypeMethod(tpl, "addCircle", addCircle);
+  Nan::SetPrototypeMethod(tpl, "addAnnulus", addAnnulus);
+  Nan::SetPrototypeMethod(tpl, "addPolygon", addPolygon);
   Nan::SetPrototypeMethod(tpl, "queryPoint", queryPoint);
   Nan::SetPrototypeMethod(tpl, "remove", remove);
 
@@ -44,12 +47,11 @@ NAN_METHOD(SpatialIndex::New) {
 
 /*
  * Adds a bounding box to the tree
- * addBox(id, [min_lat, min_lon, max_lat, max_lon])
+ * addBBox(id, min_lat, min_lon, max_lat, max_lon)
  */
 NAN_METHOD(SpatialIndex::addBBox) {
   Nan::HandleScope scope;
   SpatialIndex *spi = Nan::ObjectWrap::Unwrap<SpatialIndex>(info.This());
-  v8::Local<v8::Array> coords;
 
   // Checks the id parameter validity
   if (info[0]->IsUndefined() || !info[0]->IsString()) {
@@ -60,27 +62,129 @@ NAN_METHOD(SpatialIndex::addBBox) {
   v8::String::Utf8Value argId(info[0]);
   std::string id(*argId);
 
-  // Checks the box coordinates parameter validity
+  // Checks the coordinates parameters validity
+  for(int i = 1; i < 5; i++) {
+    if (info[i]->IsUndefined() || !info[i]->IsNumber()) {
+      info.GetReturnValue().Set(false);
+      return;
+    }
+  }
+
+  // boost coordinates are Long,Lat, not Lat,Long
+  box bbox(
+    point(Nan::To<double>(info[2]).FromJust(), Nan::To<double>(info[1]).FromJust()),
+    point(Nan::To<double>(info[4]).FromJust(), Nan::To<double>(info[3]).FromJust())
+  );
+
+  std::shared_ptr<Shape> shape(new Shape(id, bbox));
+
+  spi->rtree.insert(std::make_pair(bbox, shape));
+  spi->repository.insert(std::make_pair(id, shape));
+}
+
+/*
+ * Adds a circle to the tree
+ * addCircle(id, lat, lon, radius)
+ */
+NAN_METHOD(SpatialIndex::addCircle) {
+  Nan::HandleScope scope;
+  SpatialIndex *spi = Nan::ObjectWrap::Unwrap<SpatialIndex>(info.This());
+
+  // Checks the id parameter validity
+  if (info[0]->IsUndefined() || !info[0]->IsString()) {
+    info.GetReturnValue().Set(false);
+    return;
+  }
+
+  v8::String::Utf8Value argId(info[0]);
+  std::string id(*argId);
+
+  // Checks the coordinates parameters validity
+  for(int i = 1; i < 4; i++) {
+    if (info[i]->IsUndefined() || !info[i]->IsNumber()) {
+      info.GetReturnValue().Set(false);
+      return;
+    }
+  }
+
+  // boost coordinates are Long,Lat, not Lat,Long
+  point p(Nan::To<double>(info[2]).FromJust(), Nan::To<double>(info[1]).FromJust());
+
+  std::shared_ptr<Shape> shape(new Shape(id, p, Nan::To<double>(info[3]).FromJust()));
+
+  spi->rtree.insert(std::make_pair(shape->getEnvelope(), shape));
+  spi->repository.insert(std::make_pair(id, shape));
+}
+
+/*
+ * Adds an annulus to the tree
+ * addCircle(id, lat, lon, outerRadius, innerRadius)
+ */
+NAN_METHOD(SpatialIndex::addAnnulus) {
+  Nan::HandleScope scope;
+  SpatialIndex *spi = Nan::ObjectWrap::Unwrap<SpatialIndex>(info.This());
+
+  // Checks the id parameter validity
+  if (info[0]->IsUndefined() || !info[0]->IsString()) {
+    info.GetReturnValue().Set(false);
+    return;
+  }
+
+  v8::String::Utf8Value argId(info[0]);
+  std::string id(*argId);
+
+  // Checks the coordinates parameters validity
+  for(int i = 1; i < 5; i++) {
+    if (info[i]->IsUndefined() || !info[i]->IsNumber()) {
+      info.GetReturnValue().Set(false);
+      return;
+    }
+  }
+
+  // boost coordinates are Long,Lat, not Lat,Long
+  point p(Nan::To<double>(info[2]).FromJust(), Nan::To<double>(info[1]).FromJust());
+
+  std::shared_ptr<Shape> shape(new Shape(id, p, Nan::To<double>(info[3]).FromJust(), Nan::To<double>(info[4]).FromJust()));
+
+  spi->rtree.insert(std::make_pair(shape->getEnvelope(), shape));
+  spi->repository.insert(std::make_pair(id, shape));
+}
+
+/*
+ * Adds a polygon to the tree
+ * addPolygon(id, [[lat, lon], [lat, lon], [lat, lon], ...]])
+ */
+NAN_METHOD(SpatialIndex::addPolygon) {
+  Nan::HandleScope scope;
+  SpatialIndex *spi = Nan::ObjectWrap::Unwrap<SpatialIndex>(info.This());
+
+  // Checks the id parameter validity
+  if (info[0]->IsUndefined() || !info[0]->IsString()) {
+    info.GetReturnValue().Set(false);
+    return;
+  }
+
+  v8::String::Utf8Value argId(info[0]);
+  std::string id(*argId);
+
+  // Checks the coordinates parameters validity
   if (info[1]->IsUndefined() || !info[1]->IsArray()) {
     info.GetReturnValue().Set(false);
     return;
   }
 
-  coords = info[1].As<v8::Array>();
+  v8::Local<v8::Array> points = info[1].As<v8::Array>();
+  polygon pl;
 
-  if (coords->Length() != 4) {
-    info.GetReturnValue().Set(false);
-    return;
+  // boost coordinates are Long,Lat, not Lat,Long
+  for(unsigned int i = 0; i < points->Length(); i++) {
+    v8::Local<v8::Array> p = points->Get(i).As<v8::Array>();
+    pl.outer().push_back(point(Nan::To<double>(p->Get(1)).FromJust(), Nan::To<double>(p->Get(0)).FromJust()));
   }
 
-  std::shared_ptr<box> bbox(new box(
-    point(Nan::To<double>(coords->Get(0)).FromJust(), Nan::To<double>(coords->Get(1)).FromJust()),
-    point(Nan::To<double>(coords->Get(2)).FromJust(), Nan::To<double>(coords->Get(3)).FromJust())
-  ));
+  std::shared_ptr<Shape> shape(new Shape(id, pl));
 
-  std::shared_ptr<Shape> shape(new Shape(id, bbox));
-
-  spi->rtree.insert(std::make_pair(*bbox, shape));
+  spi->rtree.insert(std::make_pair(shape->getEnvelope(), shape));
   spi->repository.insert(std::make_pair(id, shape));
 }
 
@@ -105,7 +209,7 @@ NAN_METHOD(SpatialIndex::queryPoint) {
   lat = info[0].As<v8::Number>();
   lon = info[1].As<v8::Number>();
 
-  point coordinates(lat->Value(), lon->Value());
+  point coordinates(lon->Value(), lat->Value());
   std::vector<treeValue> found;
   spi->rtree.query(bgi::covers(coordinates), std::back_inserter(found));
 

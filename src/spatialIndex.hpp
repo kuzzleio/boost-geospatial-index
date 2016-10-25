@@ -27,6 +27,9 @@ class SpatialIndex : public Nan::ObjectWrap {
 
     // spatial index related methods
     static NAN_METHOD(addBBox);
+    static NAN_METHOD(addCircle);
+    static NAN_METHOD(addAnnulus);
+    static NAN_METHOD(addPolygon);
     static NAN_METHOD(queryPoint);
     static NAN_METHOD(remove);
 
