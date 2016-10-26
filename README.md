@@ -123,7 +123,7 @@ If no shape match, an empty array is returned.
 # Example
 
 ```js
-var BoostSpatialIndex = require('boost-spatial-index');
+var BoostSpatialIndex = require('boost-geospatial-index');
 
 var bsi = new BoostSpatialIndex();
 
