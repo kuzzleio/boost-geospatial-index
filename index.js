@@ -27,6 +27,14 @@ BoostSpatialIndex.prototype.addBoundingBox = function addBoundingBox(id, min_lat
     throw new Error('Invalid coordinates parameter');
   }
 
+  if (min_lat >= max_lat) {
+    throw new Error('min_lat argument cannot be greater or equal max_lat')
+  }
+
+  if (min_lon >= max_lon) {
+    throw new Error('min_lon argument cannot be greater or equal max_lon')
+  }
+
   return this.spatialIndex.addBBox(id, min_lat, min_lon, max_lat, max_lon);
 }
 
