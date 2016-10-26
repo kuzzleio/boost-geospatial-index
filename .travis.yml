@@ -1,0 +1,20 @@
+language: node_js
+node_js:
+- '4'
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-4.9
+    - g++-4.9
+before_install:
+- export CC="gcc-4.9" CXX="g++-4.9"
+deploy:
+  provider: npm
+  email: support@kuzzle.io
+  api_key:
+    secure: zOjlAQb5bc1Is97y2Bi0Wt9avwDXJNzYk+DkY4qxixXBLNNTQ4O8+rgPog9K2obFcbcdKh+9kJprDGCqmP6QrU/0xJXOpHjnwcZgsEsAW6bAyK5XjCRfKbTsYgTLSjpObI+fsUMzb0fjMf1OlIbv/fu/j/ACEZsEEzJXGY3ucOYTz65Zc60YbDYGP/r2UQOIZgE+lRcw4iGN2u4PduChnJS46dbbriLzPVe9F938MhADbEtBU/WOHsaYnvYi93FTjo2lHLSwtntBcsQA5ORHnqKD584JBuZXlacQZMD5D+VyWOGm8nmZgK+rnV491I5c5YXtGy2RHrnQvdpgahph4UVE2qam9hJ9WTq3aoM9ohUqXSyH07e+VC+EHqvZhZrtlubxdOkbmvalLA063pwKMNircv9RM2sNLzggNYh9qpaQV/KEvtBrTydtfmRmnH/srnrUcJhbx4eOJC5bcXRs+sxMVt3SHJJ0Fiu1J4po7i8DbL40UO99CZGLbmlUAykvcr9mDdTsLEIGf+q+uFf2jjktvhm/43pQp3TwRnp4GH8Jq9B9JZOZEqjfy0qbNXvsr6b88z+fcSViqT6NcHTaehuc7MvWixEaTLiQ6pAnQf+fJOqSJtGCNF6iqS1rts6ZeZPIxw3+4ou5+nt3ilpA7TjASYdTzSGuaMXkFPYgrhE=
+  on:
+    repo: kuzzleio/boost-geospatial-index
+    branch: master
