@@ -1,14 +1,14 @@
 {
   "name": "boost-geospatial-index",
   "main": "index.js",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "author": "The Kuzzle Team <support@kuzzle.io>",
   "description": "A bridge to the C++ boost::geometry library, allowing to index and query geospatial shapes",
   "keywords": [
     "rtree",
     "rstar",
     "geospatial",
-    "shape",
+    "geoshape",
     "kuzzle"
   ],
   "scripts": {
