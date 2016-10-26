@@ -40,7 +40,7 @@ npm install --save boost-geospatial-index
 ## Creating a new index
 
 ```js
-var BoostSpatialIndex = require('boost-spatial-index');
+var BoostSpatialIndex = require('boost-geospatial-index');
 
 var bsi = new BoostSpatialIndex();
 ```
@@ -157,7 +157,7 @@ Kuzzle team favorite pub: [ 'Montpellier, France', 'Around Kuzzle HQ' ]
 
 Here are some features we might add in the future:
 
-* add a `queryIntersect` method, allowing to retrieve shapes interecting a given polygon
+* add a `queryIntersect` method, allowing to retrieve shapes intersecting a given polygon
 * add support for polygons with inner holes
 
 # License
