@@ -10,6 +10,7 @@
         "<!(node -e \"require('nan')\")",
         "include"
       ],
+      'cflags': [ '-Wno-misleading-indentation' ],
       'cflags_cc!': [ '-fno-exceptions' ],
       'conditions': [
         ['OS=="mac"', {
