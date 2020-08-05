@@ -236,9 +236,11 @@ NAN_METHOD(SpatialIndex::queryIntersect) {
   Nan::HandleScope scope;
   SpatialIndex *spi = Nan::ObjectWrap::Unwrap<SpatialIndex>(info.This());
 
+  v8::Local<v8::Array> result = Nan::New<v8::Array>();
+  
   // Checks the coordinates parameters validity
   if (info[0]->IsUndefined() || !info[0]->IsArray()) {
-    info.GetReturnValue().Set(false);
+    info.GetReturnValue().Set(result);
     return;
   }
 
@@ -262,7 +264,6 @@ NAN_METHOD(SpatialIndex::queryIntersect) {
   //calling intersects here, pure inside polygon check would be covered_by
   spi->rtree.query(bgi::intersects(queryPoly), std::back_inserter(found));
 
-  v8::Local<v8::Array> result = Nan::New<v8::Array>();
   for(std::vector<treeValue>::iterator it = found.begin(); it != found.end(); ++it) {
       Nan::Set(result, result->Length(), Nan::New(it->second->getId()).ToLocalChecked());
   }
