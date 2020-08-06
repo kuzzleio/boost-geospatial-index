@@ -179,7 +179,6 @@ Hangout spots: [ 'Montpellier, France',
 
 Here are some features we might add in the future:
 
-* add a `queryIntersect` method, allowing to retrieve shapes intersecting a given polygon
 * add support for polygons with inner holes
 
 # License
