@@ -22,6 +22,7 @@ This library is used by [Kuzzle](http://kuzzle.io)'s real-time engine and is foc
       - [addPolygon(id, points)](#addpolygonid-points)
 - [Querying the index](#querying-the-index)
     - [queryPoint(lat, lon)](#querypointlat-lon)
+    - [queryIntersect(points)](#queryintersecpoints)
 - [Removing a shape from the index](#removing-a-shape-from-the-index)
     - [remove(id)](#removeid)
 - [Example](#example)
@@ -110,6 +111,18 @@ If no shape match, an empty array is returned.
 | `lat` | number | y coordinate |
 | `lon` | number | x coordinate |
 
+##### queryIntersect(points)
+
+Gets all shapes intersecting the polygon created from the list of point coordinates provided. Shapes partially covered by the polygon also returned.
+
+If no shape match, an empty array is returned.
+
+**Returns:** `array of shape ids`
+
+| Argument | Type | Description |
+|----------|------|-------------|
+| `points` | array | array of arrays of [lat, lon] points |
+
 # Removing a shape from the index
 
 ##### remove(id)
@@ -144,6 +157,12 @@ bsi.addCircle('Montpellier Airport', 43.5764455, 3.948711, 2000);
 
 console.log('Querying Kuzzle HQ: ', bsi.queryPoint(43.6073913, 3.9109057));
 console.log('Kuzzle team favorite pub:', bsi.queryPoint(43.6002203, 3.897105));
+console.log('Hangout spots:', bsi.queryIntersect([
+            [43.6072203, 3.9],
+            [43.607,5.900],
+            [44.609000, 5.90000],
+            [44.605,3.9]
+            ]));
 ```
 
 Result:
@@ -151,6 +170,9 @@ Result:
 ```
 Querying Kuzzle HQ:  [ 'Montpellier, France', 'Montpellier Millenaire' ]
 Kuzzle team favorite pub: [ 'Montpellier, France', 'Around Kuzzle HQ' ]
+Hangout spots: [ 'Montpellier, France',
+  'Montpellier Millenaire',
+  'Around Kuzzle HQ' ]
 ```
 
 # TODO

@@ -18,6 +18,7 @@ NAN_MODULE_INIT(SpatialIndex::init) {
   Nan::SetPrototypeMethod(tpl, "addAnnulus", addAnnulus);
   Nan::SetPrototypeMethod(tpl, "addPolygon", addPolygon);
   Nan::SetPrototypeMethod(tpl, "queryPoint", queryPoint);
+  Nan::SetPrototypeMethod(tpl, "queryIntersect", queryIntersect);
   Nan::SetPrototypeMethod(tpl, "remove", remove);
 
   constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
@@ -220,6 +221,51 @@ NAN_METHOD(SpatialIndex::queryPoint) {
     if (it->second->covered(coordinates)) {
       Nan::Set(result, result->Length(), Nan::New(it->second->getId()).ToLocalChecked());
     }
+  }
+
+  info.GetReturnValue().Set(result);
+}
+
+/*
+ * Gets all ids embedding the provided point coordinates
+ * queryIntersect([[lat, lon], [lat, lon], [lat, lon], ...]])
+ *
+ * Returns an array of matching ids as strings
+ */
+NAN_METHOD(SpatialIndex::queryIntersect) {
+  Nan::HandleScope scope;
+  SpatialIndex *spi = Nan::ObjectWrap::Unwrap<SpatialIndex>(info.This());
+
+  v8::Local<v8::Array> result = Nan::New<v8::Array>();
+  
+  // Checks the coordinates parameters validity
+  if (info[0]->IsUndefined() || !info[0]->IsArray()) {
+    info.GetReturnValue().Set(result);
+    return;
+  }
+
+  v8::Local<v8::Array> points = info[0].As<v8::Array>();
+  polygon queryPoly;
+
+  // note: flip coordinates from lat,long to long,lat to abide by boost
+  v8::Local<v8::Context> context = info.GetIsolate()->GetCurrentContext();
+  for(unsigned int i = 0; i < points->Length(); i++) {
+    v8::Local<v8::Array> p = points->Get(context, i)
+      .ToLocalChecked()
+      .As<v8::Array>();
+
+    queryPoly.outer().push_back(
+      point(
+        Nan::To<double>(p->Get(context, 1).ToLocalChecked()).FromJust(),
+        Nan::To<double>(p->Get(context, 0).ToLocalChecked()).FromJust()));
+  }
+
+  std::vector<treeValue> found;
+  //calling intersects here, pure inside polygon check would be covered_by
+  spi->rtree.query(bgi::intersects(queryPoly), std::back_inserter(found));
+
+  for(std::vector<treeValue>::iterator it = found.begin(); it != found.end(); ++it) {
+      Nan::Set(result, result->Length(), Nan::New(it->second->getId()).ToLocalChecked());
   }
 
   info.GetReturnValue().Set(result);

@@ -9,6 +9,8 @@
 #include <string>
 #include <boost/geometry.hpp>
 #include <boost/geometry/index/rtree.hpp>
+#include <boost/geometry/geometries/box.hpp>
+#include <boost/geometry/geometries/polygon.hpp>
 #include "shape.hpp"
 
 typedef std::pair<box, std::shared_ptr<Shape>> treeValue;
@@ -41,6 +43,7 @@ class SpatialIndex : public Nan::ObjectWrap {
     static NAN_METHOD(addAnnulus);
     static NAN_METHOD(addPolygon);
     static NAN_METHOD(queryPoint);
+    static NAN_METHOD(queryIntersect);
     static NAN_METHOD(remove);
 
 
