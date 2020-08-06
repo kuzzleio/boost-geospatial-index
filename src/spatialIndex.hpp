@@ -9,9 +9,21 @@
 #include <string>
 #include <boost/geometry.hpp>
 #include <boost/geometry/index/rtree.hpp>
+#include <boost/geometry/geometries/box.hpp>
+#include <boost/geometry/geometries/polygon.hpp>
 #include "shape.hpp"
 
 typedef std::pair<box, std::shared_ptr<Shape>> treeValue;
+
+const std::string toString(v8::Isolate *isolate, v8::Local<v8::Value> value) {
+#if NODE_MODULE_VERSION < NODE_12_0_MODULE_VERSION
+    v8::String::Utf8Value utf8(value);
+#else
+    v8::String::Utf8Value utf8(isolate, value);
+#endif
+
+    return *utf8;
+}
 
 class SpatialIndex : public Nan::ObjectWrap {
   public:
@@ -31,6 +43,7 @@ class SpatialIndex : public Nan::ObjectWrap {
     static NAN_METHOD(addAnnulus);
     static NAN_METHOD(addPolygon);
     static NAN_METHOD(queryPoint);
+    static NAN_METHOD(queryIntersect);
     static NAN_METHOD(remove);
 
 

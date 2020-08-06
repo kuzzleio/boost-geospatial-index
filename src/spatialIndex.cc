@@ -18,6 +18,7 @@ NAN_MODULE_INIT(SpatialIndex::init) {
   Nan::SetPrototypeMethod(tpl, "addAnnulus", addAnnulus);
   Nan::SetPrototypeMethod(tpl, "addPolygon", addPolygon);
   Nan::SetPrototypeMethod(tpl, "queryPoint", queryPoint);
+  Nan::SetPrototypeMethod(tpl, "queryIntersect", queryIntersect);
   Nan::SetPrototypeMethod(tpl, "remove", remove);
 
   constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
@@ -59,8 +60,7 @@ NAN_METHOD(SpatialIndex::addBBox) {
     return;
   }
 
-  v8::String::Utf8Value argId(info[0]);
-  std::string id(*argId);
+  std::string id = toString(info.GetIsolate(), info[0]);
 
   // Checks the coordinates parameters validity
   for(int i = 1; i < 5; i++) {
@@ -96,8 +96,7 @@ NAN_METHOD(SpatialIndex::addCircle) {
     return;
   }
 
-  v8::String::Utf8Value argId(info[0]);
-  std::string id(*argId);
+  std::string id = toString(info.GetIsolate(), info[0]);
 
   // Checks the coordinates parameters validity
   for(int i = 1; i < 4; i++) {
@@ -130,8 +129,7 @@ NAN_METHOD(SpatialIndex::addAnnulus) {
     return;
   }
 
-  v8::String::Utf8Value argId(info[0]);
-  std::string id(*argId);
+  std::string id = toString(info.GetIsolate(), info[0]);
 
   // Checks the coordinates parameters validity
   for(int i = 1; i < 5; i++) {
@@ -164,8 +162,7 @@ NAN_METHOD(SpatialIndex::addPolygon) {
     return;
   }
 
-  v8::String::Utf8Value argId(info[0]);
-  std::string id(*argId);
+  std::string id = toString(info.GetIsolate(), info[0]);
 
   // Checks the coordinates parameters validity
   if (info[1]->IsUndefined() || !info[1]->IsArray()) {
@@ -177,9 +174,16 @@ NAN_METHOD(SpatialIndex::addPolygon) {
   polygon pl;
 
   // boost coordinates are Long,Lat, not Lat,Long
+  v8::Local<v8::Context> context = info.GetIsolate()->GetCurrentContext();
   for(unsigned int i = 0; i < points->Length(); i++) {
-    v8::Local<v8::Array> p = points->Get(i).As<v8::Array>();
-    pl.outer().push_back(point(Nan::To<double>(p->Get(1)).FromJust(), Nan::To<double>(p->Get(0)).FromJust()));
+    v8::Local<v8::Array> p = points->Get(context, i)
+      .ToLocalChecked()
+      .As<v8::Array>();
+
+    pl.outer().push_back(
+      point(
+        Nan::To<double>(p->Get(context, 1).ToLocalChecked()).FromJust(),
+        Nan::To<double>(p->Get(context, 0).ToLocalChecked()).FromJust()));
   }
 
   std::shared_ptr<Shape> shape(new Shape(id, pl));
@@ -223,6 +227,51 @@ NAN_METHOD(SpatialIndex::queryPoint) {
 }
 
 /*
+ * Gets all ids embedding the provided point coordinates
+ * queryIntersect([[lat, lon], [lat, lon], [lat, lon], ...]])
+ *
+ * Returns an array of matching ids as strings
+ */
+NAN_METHOD(SpatialIndex::queryIntersect) {
+  Nan::HandleScope scope;
+  SpatialIndex *spi = Nan::ObjectWrap::Unwrap<SpatialIndex>(info.This());
+
+  v8::Local<v8::Array> result = Nan::New<v8::Array>();
+  
+  // Checks the coordinates parameters validity
+  if (info[0]->IsUndefined() || !info[0]->IsArray()) {
+    info.GetReturnValue().Set(result);
+    return;
+  }
+
+  v8::Local<v8::Array> points = info[0].As<v8::Array>();
+  polygon queryPoly;
+
+  // note: flip coordinates from lat,long to long,lat to abide by boost
+  v8::Local<v8::Context> context = info.GetIsolate()->GetCurrentContext();
+  for(unsigned int i = 0; i < points->Length(); i++) {
+    v8::Local<v8::Array> p = points->Get(context, i)
+      .ToLocalChecked()
+      .As<v8::Array>();
+
+    queryPoly.outer().push_back(
+      point(
+        Nan::To<double>(p->Get(context, 1).ToLocalChecked()).FromJust(),
+        Nan::To<double>(p->Get(context, 0).ToLocalChecked()).FromJust()));
+  }
+
+  std::vector<treeValue> found;
+  //calling intersects here, pure inside polygon check would be covered_by
+  spi->rtree.query(bgi::intersects(queryPoly), std::back_inserter(found));
+
+  for(std::vector<treeValue>::iterator it = found.begin(); it != found.end(); ++it) {
+      Nan::Set(result, result->Length(), Nan::New(it->second->getId()).ToLocalChecked());
+  }
+
+  info.GetReturnValue().Set(result);
+}
+
+/*
  * Removes an object from the index
  * remove(id)
  *
@@ -237,8 +286,8 @@ NAN_METHOD(SpatialIndex::remove) {
     return;
   }
 
-  v8::String::Utf8Value id(info[0]);
-  std::unordered_map<std::string, std::shared_ptr<Shape> >::const_iterator found = spi->repository.find(*id);
+  std::string id = toString(info.GetIsolate(), info[0]);
+  std::unordered_map<std::string, std::shared_ptr<Shape> >::const_iterator found = spi->repository.find(id);
 
   if (found == spi->repository.end()) {
     info.GetReturnValue().Set(false);
@@ -246,7 +295,7 @@ NAN_METHOD(SpatialIndex::remove) {
   }
 
   spi->rtree.remove(std::make_pair(found->second->getEnvelope(), found->second));
-  spi->repository.erase(*id);
+  spi->repository.erase(id);
 
   info.GetReturnValue().Set(true);
 }

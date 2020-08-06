@@ -143,6 +143,39 @@ BoostSpatialIndex.prototype.queryPoint = function queryPoint(lat, lon) {
 }
 
 /**
+ * Gets all shape identifiers intersecting the polygon
+ * created using the "points" argument
+ * The polygon is open (automatically closed)
+ *
+ * The "points" argument is an array of array of coordinates.
+ * Example:
+ *   [[lat, lon], [lat, lon], [lat, lon], ...]
+ *
+ * @param {Array<Array<Number>>} points
+ * @return {Array<string>}
+ */
+BoostSpatialIndex.prototype.queryIntersect = function queryIntersect(points) {
+
+  if (!points || typeof points !== 'object' || !Array.isArray(points)) {
+    throw new Error('Invalid points arguments');
+  }
+
+  idx = points.findIndex(v => {
+    return !v ||
+      typeof v !== 'object' ||
+      !Array.isArray(v) ||
+      v.length !== 2 ||
+      v.find(coord => typeof coord !== 'number');
+  });
+
+  if (idx !== -1) {
+    throw new Error('points arguments must only contain arrays, each one being point coordinates');
+  }
+
+  return this.spatialIndex.queryIntersect(points);
+}
+
+/**
  * Removes an id from the spatial index
  *
  * @param {string} id - shape identifier to remove
