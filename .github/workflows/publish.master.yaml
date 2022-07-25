@@ -1,0 +1,10 @@
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  npm-deploy:
+    name: Deploy to NPM
+    uses: kuzzleio/ci-tooling/.github/workflows/npm-deploy.yaml@master # Execute the workflow from the ci-tooling repository
+    secrets: inherit # Pass the secrets to the workflow
