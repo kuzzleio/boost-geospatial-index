@@ -8,5 +8,3 @@ jobs:
     name: Deploy to NPM
     uses: kuzzleio/ci-tooling/.github/workflows/npm-deploy.yaml@master
     secrets: inherit
-    with:
-      build: true
