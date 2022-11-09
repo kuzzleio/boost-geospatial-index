@@ -24,7 +24,7 @@
     "nan": "^2.14.0"
   },
   "devDependencies": {
-    "node-gyp": "^6.0.0"
+    "node-gyp": "^6.1.0"
   },
   "engines": {
     "node": ">= 4.4.5",
