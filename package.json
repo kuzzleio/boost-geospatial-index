@@ -21,10 +21,10 @@
   },
   "dependencies": {
     "bindings": "^1.5.0",
-    "nan": "^2.14.0"
+    "nan": "^2.18.0"
   },
   "devDependencies": {
-    "node-gyp": "^6.1.0"
+    "node-gyp": "^9.4.0"
   },
   "engines": {
     "node": ">= 4.4.5",
