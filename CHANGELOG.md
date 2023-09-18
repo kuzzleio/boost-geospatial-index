@@ -1,3 +1,10 @@
+# [1.2.0-beta.2](https://github.com/kuzzleio/boost-geospatial-index/compare/v1.2.0-beta.1...v1.2.0-beta.2) (2023-09-18)
+
+
+### Bug Fixes
+
+* **binding.gyp:** remove CLANG_CXX_LIBRARY is macos condition ([a3f6684](https://github.com/kuzzleio/boost-geospatial-index/commit/a3f6684f43b1cd823b2d86300d846d55f71cffe3))
+
 # [1.2.0-beta.1](https://github.com/kuzzleio/boost-geospatial-index/compare/v1.1.2...v1.2.0-beta.1) (2023-09-18)
 
 
