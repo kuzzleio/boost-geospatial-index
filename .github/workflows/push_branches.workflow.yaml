@@ -26,7 +26,11 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           scope: "@kuzzleio"
 
-      - name: Build
+      - name: Install
+        run: npm ci
+
+
+      - name: configure
         run: npm run configure
 
       - name: Build
