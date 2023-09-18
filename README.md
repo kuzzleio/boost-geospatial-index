@@ -181,6 +181,15 @@ Here are some features we might add in the future:
 
 * add support for polygons with inner holes
 
+# Update Boost headers
+
+- rm -rf boost-geospatial-index/include/boost
+- Download last boost version : https://www.boost.org/users/download/
+- Unzip then follow this steps 
+- ./bootstrap.sh
+- ./b2 tools/bcp
+- ./dist/bin/bcp boost/geometry.hpp boost-geospatial-index/include/
+
 # License
 
 This library is published under [Apache 2 License](LICENSE.md).

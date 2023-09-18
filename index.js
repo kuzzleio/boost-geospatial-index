@@ -3,7 +3,7 @@ var BSI = require('bindings')('BoostSpatialIndex');
 /**
  * @constructor
  */
-function BoostSpatialIndex() {
+function BoostSpatialIndex () {
   this.spatialIndex = new BSI.SpatialIndex();
   return this;
 }
@@ -18,8 +18,8 @@ function BoostSpatialIndex() {
  * @param {Number} max_lon
  * @return {boolean}
  */
-BoostSpatialIndex.prototype.addBoundingBox = function addBoundingBox(id, min_lat, min_lon, max_lat, max_lon) {
-  if (!id || typeof id !== 'string' || id.length === 0) {
+BoostSpatialIndex.prototype.addBoundingBox = function addBoundingBox (id, min_lat, min_lon, max_lat, max_lon) {
+  if (! id || typeof id !== 'string' || id.length === 0) {
     throw new Error('Invalid "id" parameter: must be a non-empty string');
   }
 
@@ -28,15 +28,15 @@ BoostSpatialIndex.prototype.addBoundingBox = function addBoundingBox(id, min_lat
   }
 
   if (min_lat >= max_lat) {
-    throw new Error('min_lat argument cannot be greater or equal max_lat')
+    throw new Error('min_lat argument cannot be greater or equal max_lat');
   }
 
   if (min_lon >= max_lon) {
-    throw new Error('min_lon argument cannot be greater or equal max_lon')
+    throw new Error('min_lon argument cannot be greater or equal max_lon');
   }
 
   return this.spatialIndex.addBBox(id, min_lat, min_lon, max_lat, max_lon);
-}
+};
 
 /**
  * Adds a circle shape to the index
@@ -47,8 +47,8 @@ BoostSpatialIndex.prototype.addBoundingBox = function addBoundingBox(id, min_lat
  * @param {Number} radius in meters
  * @return {boolean}
  */
-BoostSpatialIndex.prototype.addCircle = function addCircle(id, lat, lon, radius) {
-  if (!id || typeof id !== 'string' || id.length === 0) {
+BoostSpatialIndex.prototype.addCircle = function addCircle (id, lat, lon, radius) {
+  if (! id || typeof id !== 'string' || id.length === 0) {
     throw new Error('Invalid "id" parameter: must be a non-empty string');
   }
 
@@ -57,7 +57,7 @@ BoostSpatialIndex.prototype.addCircle = function addCircle(id, lat, lon, radius)
   }
 
   return this.spatialIndex.addCircle(id, lat, lon, radius);
-}
+};
 
 /**
  * Adds an annulus shape to the index
@@ -69,8 +69,8 @@ BoostSpatialIndex.prototype.addCircle = function addCircle(id, lat, lon, radius)
  * @param {Number} innerRadius in meters
  * @return {boolean}
  */
-BoostSpatialIndex.prototype.addAnnulus = function addAnnulus(id, lat, lon, outer, inner) {
-  if (!id || typeof id !== 'string' || id.length === 0) {
+BoostSpatialIndex.prototype.addAnnulus = function addAnnulus (id, lat, lon, outer, inner) {
+  if (! id || typeof id !== 'string' || id.length === 0) {
     throw new Error('Invalid "id" parameter: must be a non-empty string');
   }
 
@@ -78,12 +78,12 @@ BoostSpatialIndex.prototype.addAnnulus = function addAnnulus(id, lat, lon, outer
     throw new Error('Invalid coordinates parameter');
   }
 
-  if (outer <= inner)  {
+  if (outer <= inner) {
     throw new Error('Outer radius must be strictly greater than the inner one');
   }
 
   return this.spatialIndex.addAnnulus(id, lat, lon, outer, inner);
-}
+};
 
 /**
  * Adds a polygon shape to the index
@@ -97,21 +97,21 @@ BoostSpatialIndex.prototype.addAnnulus = function addAnnulus(id, lat, lon, outer
  * @param {Array<Array<Number>>} points
  * @return {boolean}
  */
-BoostSpatialIndex.prototype.addPolygon = function addPolygon(id, points) {
+BoostSpatialIndex.prototype.addPolygon = function addPolygon (id, points) {
   var idx;
 
-  if (!id || typeof id !== 'string' || id.length === 0) {
+  if (! id || typeof id !== 'string' || id.length === 0) {
     throw new Error('Invalid "id" parameter: must be a non-empty string');
   }
 
-  if (!points || typeof points !== 'object' || !Array.isArray(points)) {
+  if (! points || typeof points !== 'object' || ! Array.isArray(points)) {
     throw new Error('Invalid points arguments');
   }
 
   idx = points.findIndex(v => {
-    return !v ||
+    return ! v ||
       typeof v !== 'object' ||
-      !Array.isArray(v) ||
+      ! Array.isArray(v) ||
       v.length !== 2 ||
       v.find(coord => typeof coord !== 'number');
   });
@@ -121,7 +121,7 @@ BoostSpatialIndex.prototype.addPolygon = function addPolygon(id, points) {
   }
 
   return this.spatialIndex.addPolygon(id, points);
-}
+};
 
 /**
  * Gets all shapes identifiers covering the provided coordinates
@@ -130,7 +130,7 @@ BoostSpatialIndex.prototype.addPolygon = function addPolygon(id, points) {
  * @param {Number} lon
  * @return {Array<string>}
  */
-BoostSpatialIndex.prototype.queryPoint = function queryPoint(lat, lon) {
+BoostSpatialIndex.prototype.queryPoint = function queryPoint (lat, lon) {
   if (typeof lat !== 'number') {
     throw new Error('Invalid lat parameter');
   }
@@ -140,7 +140,7 @@ BoostSpatialIndex.prototype.queryPoint = function queryPoint(lat, lon) {
   }
 
   return this.spatialIndex.queryPoint(lat, lon);
-}
+};
 
 /**
  * Gets all shape identifiers intersecting the polygon
@@ -154,16 +154,16 @@ BoostSpatialIndex.prototype.queryPoint = function queryPoint(lat, lon) {
  * @param {Array<Array<Number>>} points
  * @return {Array<string>}
  */
-BoostSpatialIndex.prototype.queryIntersect = function queryIntersect(points) {
+BoostSpatialIndex.prototype.queryIntersect = function queryIntersect (points) {
 
-  if (!points || typeof points !== 'object' || !Array.isArray(points)) {
+  if (! points || typeof points !== 'object' || ! Array.isArray(points)) {
     throw new Error('Invalid points arguments');
   }
 
-  idx = points.findIndex(v => {
-    return !v ||
+  let idx = points.findIndex(v => {
+    return ! v ||
       typeof v !== 'object' ||
-      !Array.isArray(v) ||
+      ! Array.isArray(v) ||
       v.length !== 2 ||
       v.find(coord => typeof coord !== 'number');
   });
@@ -173,7 +173,7 @@ BoostSpatialIndex.prototype.queryIntersect = function queryIntersect(points) {
   }
 
   return this.spatialIndex.queryIntersect(points);
-}
+};
 
 /**
  * Removes an id from the spatial index
@@ -181,12 +181,12 @@ BoostSpatialIndex.prototype.queryIntersect = function queryIntersect(points) {
  * @param {string} id - shape identifier to remove
  * @return {boolean}
  */
-BoostSpatialIndex.prototype.remove = function remove(id) {
-  if (!id || typeof id !== 'string' || id.length === 0) {
+BoostSpatialIndex.prototype.remove = function remove (id) {
+  if (! id || typeof id !== 'string' || id.length === 0) {
     throw new Error('Invalid id parameter');
   }
 
   return this.spatialIndex.remove(id);
-}
+};
 
 module.exports = BoostSpatialIndex;
