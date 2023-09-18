@@ -2,8 +2,8 @@
 
 // Copyright (c) 2007-2015 Barend Gehrels, Amsterdam, the Netherlands.
 
-// This file was modified by Oracle on 2013, 2014, 2015.
-// Modifications copyright (c) 2013-2015 Oracle and/or its affiliates.
+// This file was modified by Oracle on 2013-2022.
+// Modifications copyright (c) 2013-2022 Oracle and/or its affiliates.
 
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
@@ -26,7 +26,7 @@ namespace detail { namespace relate
 {
 
 template <typename Geometry1, typename Geometry2>
-struct result_handler_type<Geometry1, Geometry2, geometry::de9im::matrix, false>
+struct result_handler_type<Geometry1, Geometry2, geometry::de9im::matrix>
 {
     typedef matrix_handler<geometry::de9im::matrix> type;
 };
@@ -35,16 +35,21 @@ struct result_handler_type<Geometry1, Geometry2, geometry::de9im::matrix, false>
 }} // namespace detail::relate
 #endif // DOXYGEN_NO_DETAIL
 
-
-namespace resolve_variant
+namespace resolve_dynamic
 {
 
-template <typename Geometry1, typename Geometry2>
+template
+<
+    typename Geometry1, typename Geometry2,
+    typename Tag1 = typename geometry::tag<Geometry1>::type,
+    typename Tag2 = typename geometry::tag<Geometry2>::type
+>
 struct relation
 {
-    template <typename Matrix>
+    template <typename Matrix, typename Strategy>
     static inline Matrix apply(Geometry1 const& geometry1,
-                               Geometry2 const& geometry2)
+                               Geometry2 const& geometry2,
+                               Strategy const& strategy)
     {
         concepts::check<Geometry1 const>();
         concepts::check<Geometry2 const>();
@@ -57,105 +62,106 @@ struct relation
                 Matrix
             >::type handler;
 
-        dispatch::relate
+        resolve_strategy::relate
             <
-                Geometry1,
-                Geometry2
-            >::apply(geometry1, geometry2, handler);
+                Strategy
+            >::apply(geometry1, geometry2, handler, strategy);
 
         return handler.result();
     }
 };
 
-template <BOOST_VARIANT_ENUM_PARAMS(typename T), typename Geometry2>
-struct relation<boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)>, Geometry2>
+template <typename Geometry1, typename Geometry2, typename Tag2>
+struct relation<Geometry1, Geometry2, dynamic_geometry_tag, Tag2>
 {
-    template <typename Matrix>
-    struct visitor : boost::static_visitor<Matrix>
+    template <typename Matrix, typename Strategy>
+    static inline Matrix apply(Geometry1 const& geometry1,
+                               Geometry2 const& geometry2,
+                               Strategy const& strategy)
     {
-        Geometry2 const& m_geometry2;
-
-        visitor(Geometry2 const& geometry2)
-            : m_geometry2(geometry2) {}
-
-        template <typename Geometry1>
-        Matrix operator()(Geometry1 const& geometry1) const
+        Matrix result;
+        traits::visit<Geometry1>::apply([&](auto const& g1)
         {
-            return relation<Geometry1, Geometry2>
-                   ::template apply<Matrix>(geometry1, m_geometry2);
-        }
-    };
-
-    template <typename Matrix>
-    static inline Matrix
-    apply(boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)> const& geometry1,
-          Geometry2 const& geometry2)
-    {
-        return boost::apply_visitor(visitor<Matrix>(geometry2), geometry1);
+            result = relation
+                <
+                    util::remove_cref_t<decltype(g1)>,
+                    Geometry2
+                >::template apply<Matrix>(g1, geometry2, strategy);
+        }, geometry1);
+        return result;
     }
 };
 
-template <typename Geometry1, BOOST_VARIANT_ENUM_PARAMS(typename T)>
-struct relation<Geometry1, boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)> >
+template <typename Geometry1, typename Geometry2, typename Tag1>
+struct relation<Geometry1, Geometry2, Tag1, dynamic_geometry_tag>
 {
-    template <typename Matrix>
-    struct visitor : boost::static_visitor<Matrix>
+    template <typename Matrix, typename Strategy>
+    static inline Matrix apply(Geometry1 const& geometry1,
+                               Geometry2 const& geometry2,
+                               Strategy const& strategy)
     {
-        Geometry1 const& m_geometry1;
-
-        visitor(Geometry1 const& geometry1)
-            : m_geometry1(geometry1) {}
-
-        template <typename Geometry2>
-        Matrix operator()(Geometry2 const& geometry2) const
+        Matrix result;
+        traits::visit<Geometry2>::apply([&](auto const& g2)
         {
-            return relation<Geometry1, Geometry2>
-                   ::template apply<Matrix>(m_geometry1, geometry2);
-        }
-    };
-
-    template <typename Matrix>
-    static inline Matrix
-    apply(Geometry1 const& geometry1,
-          boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)> const& geometry2)
-    {
-        return boost::apply_visitor(visitor<Matrix>(geometry1), geometry2);
+            result = relation
+                <
+                    Geometry1,
+                    util::remove_cref_t<decltype(g2)>
+                >::template apply<Matrix>(geometry1, g2, strategy);
+        }, geometry2);
+        return result;
     }
 };
 
-template
-<
-    BOOST_VARIANT_ENUM_PARAMS(typename T1),
-    BOOST_VARIANT_ENUM_PARAMS(typename T2)
->
-struct relation
-    <
-        boost::variant<BOOST_VARIANT_ENUM_PARAMS(T1)>,
-        boost::variant<BOOST_VARIANT_ENUM_PARAMS(T2)>
-    >
+template <typename Geometry1, typename Geometry2>
+struct relation<Geometry1, Geometry2, dynamic_geometry_tag, dynamic_geometry_tag>
 {
-    template <typename Matrix>
-    struct visitor : boost::static_visitor<Matrix>
+    template <typename Matrix, typename Strategy>
+    static inline Matrix apply(Geometry1 const& geometry1,
+                               Geometry2 const& geometry2,
+                               Strategy const& strategy)
     {
-        template <typename Geometry1, typename Geometry2>
-        Matrix operator()(Geometry1 const& geometry1,
-                          Geometry2 const& geometry2) const
+        Matrix result;
+        traits::visit<Geometry1, Geometry2>::apply([&](auto const& g1, auto const& g2)
         {
-            return relation<Geometry1, Geometry2>
-                   ::template apply<Matrix>(geometry1, geometry2);
-        }
-    };
-
-    template <typename Matrix>
-    static inline Matrix
-    apply(boost::variant<BOOST_VARIANT_ENUM_PARAMS(T1)> const& geometry1,
-          boost::variant<BOOST_VARIANT_ENUM_PARAMS(T2)> const& geometry2)
-    {
-        return boost::apply_visitor(visitor<Matrix>(), geometry1, geometry2);
+            result = relation
+                <
+                    util::remove_cref_t<decltype(g1)>,
+                    util::remove_cref_t<decltype(g2)>
+                >::template apply<Matrix>(g1, g2, strategy);
+        }, geometry1, geometry2);
+        return result;
     }
 };
 
-} // namespace resolve_variant
+} // namespace resolve_dynamic
+
+
+/*!
+\brief Calculates the relation between a pair of geometries as defined in DE-9IM.
+\ingroup relation
+\tparam Geometry1 \tparam_geometry
+\tparam Geometry2 \tparam_geometry
+\tparam Strategy \tparam_strategy{Relation}
+\param geometry1 \param_geometry
+\param geometry2 \param_geometry
+\param strategy \param_strategy{relation}
+\return The DE-9IM matrix expressing the relation between geometries.
+
+\qbk{distinguish,with strategy}
+\qbk{[include reference/algorithms/relation.qbk]}
+ */
+template <typename Geometry1, typename Geometry2, typename Strategy>
+inline de9im::matrix relation(Geometry1 const& geometry1,
+                              Geometry2 const& geometry2,
+                              Strategy const& strategy)
+{
+    return resolve_dynamic::relation
+        <
+            Geometry1,
+            Geometry2
+        >::template apply<de9im::matrix>(geometry1, geometry2, strategy);
+}
 
 
 /*!
@@ -173,11 +179,11 @@ template <typename Geometry1, typename Geometry2>
 inline de9im::matrix relation(Geometry1 const& geometry1,
                               Geometry2 const& geometry2)
 {
-    return resolve_variant::relation
+    return resolve_dynamic::relation
         <
             Geometry1,
             Geometry2
-        >::template apply<de9im::matrix>(geometry1, geometry2);
+        >::template apply<de9im::matrix>(geometry1, geometry2, default_strategy());
 }
 
 
