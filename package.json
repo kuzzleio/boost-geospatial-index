@@ -13,7 +13,8 @@
   ],
   "scripts": {
     "configure": "node-gyp configure",
-    "build": "node-gyp build"
+    "build": "node-gyp build",
+    "lint": "eslint ."
   },
   "repository": {
     "type": "git",
@@ -24,7 +25,17 @@
     "nan": "^2.18.0"
   },
   "devDependencies": {
-    "node-gyp": "^9.4.0"
+    "@commitlint/cli": "^17.7.1",
+    "@commitlint/config-conventional": "^17.7.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^10.0.4",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/release-notes-generator": "^11.0.7",
+    "cz-conventional-changelog": "^3.3.0",
+    "eslint": "^8.49.0",
+    "node-gyp": "^9.4.0",
+    "semantic-release-config-kuzzle": "^1.0.0",
+    "semantic-release-slack-bot": "^4.0.2"
   },
   "engines": {
     "node": ">= 4.4.5",
