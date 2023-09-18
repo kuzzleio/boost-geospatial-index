@@ -27,6 +27,9 @@ jobs:
           scope: "@kuzzleio"
 
       - name: Build
+        run: npm run configure
+
+      - name: Build
         run: npm run build
 
       - name: Release
