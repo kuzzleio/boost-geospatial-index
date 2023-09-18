@@ -14,7 +14,7 @@
   "scripts": {
     "configure": "node-gyp configure",
     "build": "node-gyp build",
-    "test:lint": "eslint ."
+    "lint": "eslint ."
   },
   "repository": {
     "type": "git",
