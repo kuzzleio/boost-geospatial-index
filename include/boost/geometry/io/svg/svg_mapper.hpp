@@ -186,11 +186,7 @@ struct devarianted_svg_map
     {
         svg_map
             <
-                typename tag_cast
-                    <
-                        typename tag<Geometry>::type,
-                        multi_tag
-                    >::type,
+                tag_cast_t<tag_t<Geometry>, multi_tag>,
                 typename std::remove_const<Geometry>::type,
                 SvgPoint
             >::apply(stream, style, size, geometry, strategy);
@@ -456,7 +452,7 @@ public :
             << " x=\"" << get<0>(map_point) + offset_x << "\""
             << " y=\"" << get<1>(map_point) + offset_y << "\""
             << ">";
-        if (s.find("\n") == std::string::npos)
+        if (s.find('\n') == std::string::npos)
         {
              m_stream  << s;
         }

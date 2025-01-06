@@ -2,6 +2,10 @@
 
 // Copyright (c) 2021 Barend Gehrels, Amsterdam, the Netherlands.
 
+// This file was modified by Oracle on 2024.
+// Modifications copyright (c) 2024 Oracle and/or its affiliates.
+// Contributed and/or modified by Vissarion Fysikopoulos, on behalf of Oracle
+
 // Use, modification and distribution is subject to the Boost Software License,
 // Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
@@ -17,13 +21,8 @@
 #include <boost/geometry/algorithms/detail/overlay/approximately_equals.hpp>
 #include <boost/geometry/algorithms/detail/overlay/cluster_info.hpp>
 #include <boost/geometry/algorithms/detail/overlay/get_ring.hpp>
-#include <boost/geometry/algorithms/detail/recalculate.hpp>
-#include <boost/geometry/policies/robustness/rescale_policy_tags.hpp>
 #include <boost/range/value_type.hpp>
 #include <boost/geometry/util/math.hpp>
-
-#define BOOST_GEOMETRY_USE_RESCALING_IN_GET_CLUSTERS
-
 
 namespace boost { namespace geometry
 {
@@ -32,37 +31,33 @@ namespace boost { namespace geometry
 namespace detail { namespace overlay
 {
 
-template <typename Tag = no_rescale_policy_tag, bool Integral = false>
+template <bool Integral = false>
 struct sweep_equal_policy
 {
-private:
-    template <typename T>
-    static inline T threshold()
-    {
-        // Points within some epsilons are considered as equal.
-        return T(100);
-    }
+
 public:
-    // Returns true if point are considered equal (within an epsilon)
+    // Returns true if point are considered equal
     template <typename P>
     static inline bool equals(P const& p1, P const& p2)
     {
         using coor_t = typename coordinate_type<P>::type;
-        return approximately_equals(p1, p2, threshold<coor_t>());
+        static auto const tolerance
+            = common_approximately_equals_epsilon_multiplier<coor_t>::value();
+        return approximately_equals(p1, p2, tolerance);
     }
 
     template <typename T>
     static inline bool exceeds(T value)
     {
-        // This threshold is an arbitrary value
-        // as long as it is bigger than the used value above
-        T const limit = T(1) / threshold<T>();
+        static auto const tolerance
+            = common_approximately_equals_epsilon_multiplier<T>::value();
+        T const limit = T(1) / tolerance;
         return value > limit;
     }
 };
 
 template <>
-struct sweep_equal_policy<no_rescale_policy_tag, true>
+struct sweep_equal_policy<true>
 {
     template <typename P>
     static inline bool equals(P const& p1, P const& p2)
@@ -77,26 +72,6 @@ struct sweep_equal_policy<no_rescale_policy_tag, true>
         return value > 0;
     }
 };
-
-#ifdef BOOST_GEOMETRY_USE_RESCALING_IN_GET_CLUSTERS
-template <>
-struct sweep_equal_policy<rescale_policy_tag, true>
-{
-    template <typename P>
-    static inline bool equals(P const& p1, P const& p2)
-    {
-        // Neighbouring cells in the "integer grid" are considered as equal
-        return math::abs(geometry::get<0>(p1) - geometry::get<0>(p2)) <= 1
-            && math::abs(geometry::get<1>(p1) - geometry::get<1>(p2)) <= 1;
-    }
-
-    template <typename T>
-    static inline bool exceeds(T value)
-    {
-        return value > 1;
-    }
-};
-#endif
 
 template <typename Point>
 struct turn_with_point
@@ -116,29 +91,16 @@ struct cluster_with_point
 template
 <
     typename Turns,
-    typename Clusters,
-    typename RobustPolicy
+    typename Clusters
 >
-inline void get_clusters(Turns& turns, Clusters& clusters,
-                         RobustPolicy const& robust_policy)
+inline void get_clusters(Turns& turns, Clusters& clusters)
 {
     using turn_type = typename boost::range_value<Turns>::type;
     using cluster_type = typename Clusters::mapped_type;
-
-#ifdef BOOST_GEOMETRY_USE_RESCALING_IN_GET_CLUSTERS
-    // For now still use robust points for rescaled, otherwise points do not match
-    using point_type = typename geometry::robust_point_type
-    <
-        typename turn_type::point_type,
-        RobustPolicy
-    >::type;
-#else
     using point_type = typename turn_type::point_type;
-#endif
 
     sweep_equal_policy
         <
-            typename rescale_policy_type<RobustPolicy>::type,
             std::is_integral<typename coordinate_type<point_type>::type>::value
         > equal_policy;
 
@@ -148,13 +110,7 @@ inline void get_clusters(Turns& turns, Clusters& clusters,
     {
         if (! turn.discarded)
         {
-#ifdef BOOST_GEOMETRY_USE_RESCALING_IN_GET_CLUSTERS
-            point_type pnt;
-            geometry::recalculate(pnt, turn.point, robust_policy);
-            points.push_back({turn_index, pnt});
-#else
             points.push_back({turn_index, turn.point});
-#endif
         }
         turn_index++;
     }
