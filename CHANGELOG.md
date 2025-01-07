@@ -1,3 +1,10 @@
+# [1.3.0-beta.1](https://github.com/kuzzleio/boost-geospatial-index/compare/v1.2.0...v1.3.0-beta.1) (2025-01-07)
+
+
+### Features
+
+* Update boost & deps ([09edfb7](https://github.com/kuzzleio/boost-geospatial-index/commit/09edfb7114493ebff95d6581bb2ab01ea596f005))
+
 # [1.2.0](https://github.com/kuzzleio/boost-geospatial-index/compare/v1.1.2...v1.2.0) (2023-09-18)
 
 
