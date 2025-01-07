@@ -2,8 +2,9 @@
 
 // Copyright (c) 2013 Barend Gehrels, Amsterdam, the Netherlands.
 
-// This file was modified by Oracle on 2016-2021.
-// Modifications copyright (c) 2016-2021 Oracle and/or its affiliates.
+// This file was modified by Oracle on 2016-2024.
+// Modifications copyright (c) 2016-2024 Oracle and/or its affiliates.
+// Contributed and/or modified by Vissarion Fysikopoulos, on behalf of Oracle
 // Contributed and/or modified by Adam Wulkiewicz, on behalf of Oracle
 
 // Use, modification and distribution is subject to the Boost Software License,
@@ -21,6 +22,8 @@
 #include <boost/geometry/core/assert.hpp>
 #include <boost/geometry/core/coordinate_promotion.hpp>
 #include <boost/geometry/util/math.hpp>
+#include <boost/geometry/util/numeric_cast.hpp>
+
 
 namespace boost { namespace geometry
 {
@@ -153,7 +156,7 @@ public:
         , m_approximation(0)
     {}
 
-    inline segment_ratio(const Type& numerator, const Type& denominator)
+    inline segment_ratio(Type const& numerator, Type const& denominator)
         : m_numerator(numerator)
         , m_denominator(denominator)
     {
@@ -207,7 +210,7 @@ public:
     inline Type const& numerator() const { return m_numerator; }
     inline Type const& denominator() const { return m_denominator; }
 
-    inline void assign(const Type& numerator, const Type& denominator)
+    inline void assign(Type const& numerator, Type const& denominator)
     {
         m_numerator = numerator;
         m_denominator = denominator;
@@ -227,8 +230,8 @@ public:
         m_approximation =
             m_denominator == zero_instance() ? floating_point_type{0}
             : (
-                boost::numeric_cast<floating_point_type>(m_numerator) * scale()
-                / boost::numeric_cast<floating_point_type>(m_denominator)
+                util::numeric_cast<floating_point_type>(m_numerator) * scale()
+                / util::numeric_cast<floating_point_type>(m_denominator)
             );
     }
 
@@ -345,6 +348,11 @@ private :
     }
 };
 
+template <typename Point>
+struct segment_ratio_type
+{
+    using type = segment_ratio<typename geometry::coordinate_type<Point>::type>;
+};
 
 }} // namespace boost::geometry
 

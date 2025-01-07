@@ -6,30 +6,30 @@
 #ifndef BOOST_MATH_CCMATH_ISINF
 #define BOOST_MATH_CCMATH_ISINF
 
-#include <cmath>
-#include <limits>
-#include <type_traits>
-#include <boost/math/tools/is_constant_evaluated.hpp>
 #include <boost/math/special_functions/fpclassify.hpp>
+#include <boost/math/ccmath/detail/config.hpp>
 
-#include <boost/math/tools/is_standalone.hpp>
-#ifndef BOOST_MATH_STANDALONE
-#include <boost/config.hpp>
-#ifdef BOOST_NO_CXX17_IF_CONSTEXPR
-#error "The header <boost/math/norms.hpp> can only be used in C++17 and later."
-#endif
+#ifdef BOOST_MATH_NO_CCMATH
+#error "The header <boost/math/isinf.hpp> can only be used in C++17 and later."
 #endif
 
 namespace boost::math::ccmath {
 
 template <typename T>
-constexpr bool isinf BOOST_PREVENT_MACRO_SUBSTITUTION(T x) noexcept
+constexpr bool isinf BOOST_MATH_PREVENT_MACRO_SUBSTITUTION(T x) noexcept
 {
     if(BOOST_MATH_IS_CONSTANT_EVALUATED(x))
     {
         if constexpr (std::numeric_limits<T>::is_signed)
         {
+#if defined(__clang_major__) && __clang_major__ >= 6
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wtautological-constant-compare"
+#endif
             return x == std::numeric_limits<T>::infinity() || -x == std::numeric_limits<T>::infinity();
+#if defined(__clang_major__) && __clang_major__ >= 6
+#pragma clang diagnostic pop
+#endif
         }
         else
         {
@@ -39,7 +39,7 @@ constexpr bool isinf BOOST_PREVENT_MACRO_SUBSTITUTION(T x) noexcept
     else
     {
         using boost::math::isinf;
-        
+
         if constexpr (!std::is_integral_v<T>)
         {
             return (isinf)(x);
