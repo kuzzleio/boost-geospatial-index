@@ -27,6 +27,7 @@
 #include <boost/range/begin.hpp>
 #include <boost/range/end.hpp>
 #include <boost/range/value_type.hpp>
+#include <boost/range/size.hpp>
 
 #include <boost/geometry/core/exterior_ring.hpp>
 #include <boost/geometry/core/interior_rings.hpp>
@@ -225,7 +226,7 @@ struct dsv_poly
 template <typename Geometry, std::size_t Index>
 struct dsv_per_index
 {
-    typedef typename point_type<Geometry>::type point_type;
+    using type = point_type_t<Geometry>;
 
     template <typename Char, typename Traits>
     static inline void apply(std::basic_ostream<Char, Traits>& os,
@@ -244,7 +245,7 @@ struct dsv_per_index
 template <typename Geometry>
 struct dsv_indexed
 {
-    typedef typename point_type<Geometry>::type point_type;
+    using type = point_type_t<Geometry>;
 
     template <typename Char, typename Traits>
     static inline void apply(std::basic_ostream<Char, Traits>& os,
@@ -325,11 +326,11 @@ public:
     {
         dispatch::dsv
             <
-                typename tag_cast
+                tag_cast_t
                     <
-                        typename tag<Geometry>::type,
+                        tag_t<Geometry>,
                         multi_tag
-                    >::type,
+                    >,
                 Geometry
             >::apply(os, m.m_geometry, m.m_settings);
         os.flush();
