@@ -1,4 +1,4 @@
-var BSI = require('bindings')('BoostSpatialIndex');
+var BSI = require('node-gyp-build')(__dirname);
 
 /**
  * @constructor

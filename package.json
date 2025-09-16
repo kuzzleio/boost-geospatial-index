@@ -13,7 +13,8 @@
   ],
   "scripts": {
     "configure": "node-gyp configure",
-    "build": "node-gyp build",
+    "build": "prebuildify -t node@20.0.0 -t node@22.0.0 -t node@24.0.0 --no-napi --strip",
+    "install": "node-gyp-build",
     "lint": "eslint ."
   },
   "repository": {
@@ -21,8 +22,8 @@
     "url": "git://github.com/kuzzleio/boost-geospatial-index.git"
   },
   "dependencies": {
-    "bindings": "1.5.0",
-    "nan": "2.22.0"
+    "nan": "2.23.0",
+    "node-gyp-build": "4.8.4"
   },
   "devDependencies": {
     "@commitlint/cli": "19.6.1",
@@ -33,13 +34,25 @@
     "@semantic-release/release-notes-generator": "14.0.3",
     "cz-conventional-changelog": "3.3.0",
     "eslint": "8.49.0",
-    "node-gyp": "11.0.0",
+    "node-gyp": "11.4.2",
+    "prebuildify": "6.0.1",
     "semantic-release-config-kuzzle": "1.0.0",
     "semantic-release-slack-bot": "4.0.2"
   },
   "engines": {
-    "node": ">= 4.4.5",
-    "npm": ">= 2.14.4"
+    "node": ">= 20.0.0",
+    "npm": ">= 10.0.0"
   },
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "files": [
+    "include/",
+    "prebuilds/",
+    "src/",
+    "binding.gyp",
+    "index.js",
+    "LICENSE.md",
+    "package.json",
+    "README.md",
+    "index.js"
+  ]
 }
