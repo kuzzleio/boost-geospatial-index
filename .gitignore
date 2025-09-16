@@ -21,6 +21,7 @@
 
 # node-gyp
 build/
+prebuilds/
 
 # dependencies
 node_modules/
