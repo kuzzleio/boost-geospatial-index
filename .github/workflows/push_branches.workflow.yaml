@@ -7,9 +7,56 @@ on:
       - beta
 
 jobs:
+  prebuild:
+    name: Prebuild on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, macos-13, macos-latest]
+        include:
+          - os: ubuntu-22.04
+            arch: x64
+          # - os: windows-latest
+          #   arch: x64
+          # macOS Intel (x64)
+          - os: macos-13
+            arch: x64
+          # macOS Apple Silicon (arm64)
+          - os: macos-latest
+            arch: arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build prebuilds (Windows/Linux)
+        if: matrix.os == 'ubuntu-22.04' || matrix.os == 'windows-latest'
+        run: npm run build -- --arch=x64
+
+      - name: Build prebuilds (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: npm run build -- --arch=${{ matrix.arch }}
+
+      - name: Upload prebuilds
+        uses: actions/upload-artifact@v4
+        with:
+          name: prebuilds-${{ matrix.os }}-${{ matrix.arch }}
+          path: prebuilds/
+          retention-days: 1
+
   release:
+    needs: prebuild
     name: Release process
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
       issues: write
@@ -19,22 +66,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
         with:
-          node-version: "lts/*"
-          registry-url: "https://registry.npmjs.org"
-          scope: "@kuzzleio"
+          node-version: 20
+          cache: "npm"
 
-      - name: Install
-        run: npm ci
-
-
-      - name: configure
-        run: npm run configure
-
-      - name: Build
-        run: npm run build
+      - name: Download all prebuilds
+        uses: actions/download-artifact@v4
+        with:
+          pattern: prebuilds-*
+          path: prebuilds/
+          merge-multiple: true
 
       - name: Release
         env:
