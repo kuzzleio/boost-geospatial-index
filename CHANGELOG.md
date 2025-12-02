@@ -1,3 +1,16 @@
+## 1.4.0-beta.1 (2025-12-02)
+
+* fix: missing deps to release ([6d92972](https://github.com/kuzzleio/boost-geospatial-index/commit/6d92972))
+* fix: missing deps to release ([c90180b](https://github.com/kuzzleio/boost-geospatial-index/commit/c90180b))
+* fix: missing deps to release ([91466d3](https://github.com/kuzzleio/boost-geospatial-index/commit/91466d3))
+* Merge branch 'beta' into 1-dev ([594fad0](https://github.com/kuzzleio/boost-geospatial-index/commit/594fad0))
+* Merge pull request #25 from kuzzleio/1-dev ([919555d](https://github.com/kuzzleio/boost-geospatial-index/commit/919555d)), closes [#25](https://github.com/kuzzleio/boost-geospatial-index/issues/25)
+* chore(license): Update LICENSE.md ([65924e6](https://github.com/kuzzleio/boost-geospatial-index/commit/65924e6))
+* chore(license): Update LICENSE.md ([f88003f](https://github.com/kuzzleio/boost-geospatial-index/commit/f88003f))
+* chore(lint): linting the app ([1b2a539](https://github.com/kuzzleio/boost-geospatial-index/commit/1b2a539))
+* chore(runner): update runner version ([2253a4a](https://github.com/kuzzleio/boost-geospatial-index/commit/2253a4a))
+* feat: bump deps ([2da3a53](https://github.com/kuzzleio/boost-geospatial-index/commit/2da3a53))
+
 # [1.3.0](https://github.com/kuzzleio/boost-geospatial-index/compare/v1.2.0...v1.3.0) (2025-01-07)
 
 
