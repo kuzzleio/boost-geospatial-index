@@ -7,8 +7,13 @@ on:
       - beta
 
 jobs:
+  build:
+    name: Build and test
+    uses: ./.github/workflows/build.workflow.yaml
+
   release:
     name: Release process
+    needs: [build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -27,14 +32,15 @@ jobs:
           scope: "@kuzzleio"
 
       - name: Install
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-
-      - name: configure
-        run: npm run configure
-
-      - name: Build
-        run: npm run build
+      # Published inside the tarball (see `files`), which is what spares
+      # consumers the compilation.
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: prebuilds-*
+          path: prebuilds
+          merge-multiple: true
 
       - name: Release
         env:

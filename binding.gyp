@@ -7,8 +7,12 @@
         "src/spatialIndex.cc"
       ],
       "include_dirs": [
-        "<!(node -e \"require('nan')\")",
+        "<!(node -p \"require('node-addon-api').include_dir\")",
         "include"
+      ],
+      "defines": [
+        "NAPI_VERSION=8",
+        "NAPI_DISABLE_CPP_EXCEPTIONS"
       ],
       'cflags': [ '-Wno-misleading-indentation' ],
       'cflags_cc!': [ '-fno-exceptions' ],

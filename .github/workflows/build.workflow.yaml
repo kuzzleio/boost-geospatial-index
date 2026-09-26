@@ -1,0 +1,156 @@
+name: Build and test prebuilds
+
+# Shared by the pull request and push workflows, so the release publishes the
+# very prebuilds that were tested.
+on:
+  workflow_call:
+
+jobs:
+  # One N-API binary per (os, arch) serves every Node major. Linux binaries are
+  # built in a bullseye container: glibc 2.31 is older than every Debian image
+  # Kuzzle projects build on (bookworm, trixie), and a binary only loads on a
+  # glibc at least as recent as the one it was linked against.
+  prebuild:
+    name: Prebuild ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - { name: linux-x64, os: ubuntu-24.04, container: true }
+          - { name: linux-arm64, os: ubuntu-24.04-arm, container: true }
+          - { name: darwin-x64, os: macos-15-intel }
+          - { name: darwin-arm64, os: macos-15 }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prebuild in a bullseye container
+        if: ${{ matrix.container }}
+        run: |
+          docker run --rm -v "$PWD":/src -w /src node:20-bullseye \
+            bash -c "npm ci --ignore-scripts && npm run prebuildify"
+
+      - uses: actions/setup-node@v4
+        if: ${{ !matrix.container }}
+        with:
+          cache: "npm"
+          node-version: "20"
+
+      - name: Prebuild
+        if: ${{ !matrix.container }}
+        run: npm ci --ignore-scripts && npm run prebuildify
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prebuilds-${{ matrix.name }}
+          path: prebuilds/
+          if-no-files-found: error
+
+  # Installs the packed tarball the way a consumer does and fails if anything
+  # was compiled, then runs the tests against the installed package.
+  test-install:
+    name: Install from tarball (${{ matrix.os }}, Node ${{ matrix.node-version }})
+    needs: [prebuild]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15-intel, macos-15]
+        node-version: ["18", "20", "22", "24"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: prebuilds-*
+          path: prebuilds
+          merge-multiple: true
+
+      - name: Pack
+        run: npm pack --pack-destination "$RUNNER_TEMP"
+
+      - name: Install without compiling
+        working-directory: ${{ runner.temp }}
+        run: |
+          mkdir consumer && cd consumer
+          npm init -y > /dev/null
+          npm install --foreground-scripts --no-audit --no-fund ../boost-geospatial-index-*.tgz 2>&1 | tee install.log
+          if grep -qE 'gyp info spawn|CXX\(target\)' install.log; then
+            echo "::error::npm install compiled boost-geospatial-index instead of using a prebuild"
+            exit 1
+          fi
+          test ! -d node_modules/boost-geospatial-index/build
+
+      - name: Tests against the installed package
+        working-directory: ${{ runner.temp }}/consumer
+        run: |
+          cp "$GITHUB_WORKSPACE/test/index.test.js" .
+          sed -i.bak "s#require(\"..\")#require(\"boost-geospatial-index\")#" index.test.js
+          node --test index.test.js
+
+  # Differential test against the last NAN release: same seeded operations,
+  # every return value must be identical.
+  parity:
+    name: Parity with 1.4.0 (${{ matrix.os }}, Node ${{ matrix.node-version }})
+    needs: [prebuild]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+        node-version: ["20", "22", "24"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: prebuilds-*
+          path: prebuilds
+          merge-multiple: true
+
+      - name: Install the candidate (prebuilt) and the reference (compiled)
+        run: |
+          npm pack --pack-destination "$RUNNER_TEMP"
+          mkdir -p "$RUNNER_TEMP/candidate" "$RUNNER_TEMP/reference"
+          (cd "$RUNNER_TEMP/candidate" && npm init -y > /dev/null && npm install --no-audit --no-fund ../boost-geospatial-index-*.tgz)
+          (cd "$RUNNER_TEMP/reference" && npm init -y > /dev/null && npm install --no-audit --no-fund boost-geospatial-index@1.4.0)
+
+      - name: Compare
+        run: |
+          node test/parity.js \
+            "$RUNNER_TEMP/reference/node_modules/boost-geospatial-index" \
+            "$RUNNER_TEMP/candidate/node_modules/boost-geospatial-index" \
+            50000
+
+  # A platform without a prebuild must still work, by compiling locally.
+  test-fallback:
+    name: Compile fallback (alpine, no matching prebuild)
+    needs: [prebuild]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: prebuilds-*
+          path: prebuilds
+          merge-multiple: true
+
+      - name: Install and test on musl
+        run: |
+          npm pack
+          docker run --rm -v "$PWD":/src -w /tmp node:22-alpine sh -c "
+            apk add -q python3 make g++ &&
+            npm init -y > /dev/null &&
+            npm install --no-audit --no-fund /src/boost-geospatial-index-*.tgz &&
+            test -f node_modules/boost-geospatial-index/build/Release/BoostSpatialIndex.node &&
+            cp /src/test/index.test.js . &&
+            sed -i 's#require(\"..\")#require(\"boost-geospatial-index\")#' index.test.js &&
+            node --test index.test.js"

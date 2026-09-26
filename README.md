@@ -36,6 +36,12 @@ This library is used by [Kuzzle](http://kuzzle.io)'s real-time engine and is foc
 npm install --save boost-geospatial-index
 ```
 
+The package ships prebuilt N-API binaries for `linux-x64`, `linux-arm64`
+(glibc 2.31+), `darwin-x64` and `darwin-arm64`, valid for every supported Node
+major: on those platforms `npm install` compiles nothing and needs no compiler.
+Elsewhere (Alpine/musl, other architectures) it falls back to building from
+source with `node-gyp`, which requires Python and a C++ toolchain.
+
 # API
 
 ## Creating a new index
