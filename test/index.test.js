@@ -98,3 +98,63 @@ test("the native layer rejects invalid arguments with false or []", () => {
   assert.deepStrictEqual(raw.queryPoint("a", 1), []);
   assert.deepStrictEqual(raw.queryIntersect({}), []);
 });
+
+test("remove() leaves no shape behind in the tree", () => {
+  // The geographic R* tree sometimes failed to find an entry on removal, so
+  // the shape kept being returned by queries after its id was gone (koncorde
+  // then crashed on the unknown id). Seeded, so a regression is reproducible.
+  let seed = 13;
+  const rnd = () =>
+    (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const lat = () => rnd() * 170 - 85;
+  const lon = () => rnd() * 358 - 179;
+  const kinds = {
+    circle: (bsi, id) => bsi.addCircle(id, lat(), lon(), rnd() * 2e6),
+    annulus: (bsi, id) => {
+      const outer = rnd() * 2e6 + 1;
+      bsi.addAnnulus(id, lat(), lon(), outer, outer * rnd());
+    },
+    bbox: (bsi, id) => {
+      const a = lat(),
+        b = lon();
+      bsi.addBoundingBox(
+        id,
+        a,
+        b,
+        a + rnd() * 10 + 0.001,
+        b + rnd() * 10 + 0.001,
+      );
+    },
+    polygon: (bsi, id) => {
+      const cl = lat(),
+        cn = lon(),
+        r = rnd() * 20,
+        points = [];
+      for (let i = 0; i < 5; i++) {
+        const a = (2 * Math.PI * i) / 5;
+        points.push([cl + r * Math.sin(a) * 0.5, cn + r * Math.cos(a)]);
+      }
+      bsi.addPolygon(id, points);
+    },
+  };
+
+  for (const [kind, add] of Object.entries(kinds)) {
+    const bsi = new BoostSpatialIndex();
+
+    for (let i = 0; i < 2000; i++) {
+      add(bsi, `s${i}`);
+    }
+
+    for (let i = 0; i < 2000; i += 2) {
+      assert.strictEqual(bsi.remove(`s${i}`), true);
+    }
+
+    for (let i = 0; i < 5000; i++) {
+      const removed = bsi
+        .queryPoint(lat(), lon())
+        .filter((id) => Number(id.slice(1)) % 2 === 0);
+
+      assert.deepStrictEqual(removed, [], `${kind}: removed shapes returned`);
+    }
+  }
+});

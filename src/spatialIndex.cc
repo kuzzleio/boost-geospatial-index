@@ -261,7 +261,27 @@ Napi::Value SpatialIndex::remove(const Napi::CallbackInfo& info) {
     return Napi::Boolean::New(env, false);
   }
 
-  rtree.remove(std::make_pair(found->second->getEnvelope(), found->second));
+  /*
+   The geographic R* tree occasionally fails to find an entry it holds when
+   asked to remove it (remove() then returns 0): the shape would stay in the
+   index and keep being returned by queries after its id is gone. When that
+   happens, rebuild the tree without it. It is rare (a fraction of a percent
+   of removals) and costs O(n log n) only then.
+   */
+  if (rtree.remove(std::make_pair(found->second->getEnvelope(), found->second)) == 0) {
+    std::vector<treeValue> kept;
+    kept.reserve(rtree.size());
+
+    for (rtreeType::const_iterator it = rtree.begin(); it != rtree.end(); ++it) {
+      if (it->second != found->second) {
+        kept.push_back(*it);
+      }
+    }
+
+    rtreeType rebuilt(kept.begin(), kept.end());
+    rtree.swap(rebuilt);
+  }
+
   repository.erase(id);
 
   return Napi::Boolean::New(env, true);

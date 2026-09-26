@@ -132,7 +132,7 @@ jobs:
           node test/parity.js \
             "$RUNNER_TEMP/reference/node_modules/boost-geospatial-index" \
             "$RUNNER_TEMP/candidate/node_modules/boost-geospatial-index" \
-            50000
+            50000 --no-remove
 
   # A platform without a prebuild must still work, by compiling locally.
   test-fallback:
