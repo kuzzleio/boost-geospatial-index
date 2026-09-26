@@ -12,6 +12,7 @@
 #include "shape.hpp"
 
 typedef std::pair<box, std::shared_ptr<Shape>> treeValue;
+typedef boost::geometry::index::rtree< treeValue, boost::geometry::index::rstar<16> > rtreeType;
 
 class SpatialIndex : public Napi::ObjectWrap<SpatialIndex> {
   public:
@@ -30,7 +31,7 @@ class SpatialIndex : public Napi::ObjectWrap<SpatialIndex> {
 
 
     // The spatial index containing MBRs (minimum bounding rectangles)
-    boost::geometry::index::rtree< treeValue, boost::geometry::index::rstar<16> > rtree;
+    rtreeType rtree;
 
     // Map geometry objects with their corresponding string id
     std::unordered_map<std::string, std::shared_ptr<Shape> > repository;

@@ -1,11 +1,19 @@
 "use strict";
 /* eslint-disable no-console */
-// Usage: node test/parity.js <reference build dir> <candidate build dir> [ops]
+// Usage: node test/parity.js <reference build dir> <candidate build dir> [ops] [--no-remove]
 // CI runs it against the last NAN release (1.4.0) to prove the N-API port
 // returns exactly the same results.
+//
+// --no-remove skips the removals (the random draws still happen, so the rest
+// of the sequence is unchanged). It is how CI runs it since remove() stopped
+// leaving shapes behind in the tree: 1.4.0 keeps returning some removed
+// shapes, so on a sequence with removals it is not a valid reference any
+// more. test/index.test.js covers remove() directly.
 // Differential test: run the same seeded sequence of operations against two
 // builds of boost-geospatial-index and compare every return value.
-const [oldPath, newPath, n = "20000"] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const noRemove = args.includes("--no-remove");
+const [oldPath, newPath, n = "20000"] = args.filter((a) => a !== "--no-remove");
 const OPS = Number(n);
 
 function run(modPath) {
@@ -82,11 +90,13 @@ function run(modPath) {
       case 6:
         r = safe(() => b.queryIntersect(poly()));
         break;
-      case 7:
-        r = safe(() =>
-          b.remove(ids.length ? ids[Math.floor(rnd() * ids.length)] : "none"),
-        );
+      case 7: {
+        const target = ids.length
+          ? ids[Math.floor(rnd() * ids.length)]
+          : "none";
+        r = noRemove ? "skipped" : safe(() => b.remove(target));
         break;
+      }
     }
     out.push(r);
   }
