@@ -1,3 +1,9 @@
+## [1.5.0-beta.2](https://github.com/kuzzleio/boost-geospatial-index/compare/v1.5.0-beta.1...v1.5.0-beta.2) (2026-09-26)
+
+### Bug Fixes
+
+* remove() no longer leaves shapes behind in the tree ([f32a36c](https://github.com/kuzzleio/boost-geospatial-index/commit/f32a36c4d4e89899de1a8d55072a3b1fc73f2d14)), closes [Koncorde#test](https://github.com/kuzzleio/Koncorde/issues/test)
+
 ## [1.5.0-beta.1](https://github.com/kuzzleio/boost-geospatial-index/compare/v1.4.0...v1.5.0-beta.1) (2026-09-26)
 
 ### Features
