@@ -93,6 +93,11 @@ jobs:
 
   # Differential test against the last NAN release: same seeded operations,
   # every return value must be identical.
+  #
+  # The reference is compiled on Node 20 and 22 only. 1.4.0 inherited its C++
+  # standard from the Node headers, and Node 24's are gnu++20: on arm64 that
+  # build returns different results (see binding.gyp), so it is not the
+  # behavior this package pins and cannot serve as a reference.
   parity:
     name: Parity with 1.4.0 (${{ matrix.os }}, Node ${{ matrix.node-version }})
     needs: [prebuild]
@@ -101,7 +106,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, ubuntu-24.04-arm]
-        node-version: ["20", "22", "24"]
+        node-version: ["20", "22"]
     steps:
       - uses: actions/checkout@v4
 
