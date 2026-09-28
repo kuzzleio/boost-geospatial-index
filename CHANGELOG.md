@@ -1,3 +1,19 @@
+## [1.5.0-beta.2](https://github.com/kuzzleio/boost-geospatial-index/compare/v1.5.0-beta.1...v1.5.0-beta.2) (2026-09-26)
+
+### Bug Fixes
+
+* remove() no longer leaves shapes behind in the tree ([f32a36c](https://github.com/kuzzleio/boost-geospatial-index/commit/f32a36c4d4e89899de1a8d55072a3b1fc73f2d14)), closes [Koncorde#test](https://github.com/kuzzleio/Koncorde/issues/test)
+
+## [1.5.0-beta.1](https://github.com/kuzzleio/boost-geospatial-index/compare/v1.4.0...v1.5.0-beta.1) (2026-09-26)
+
+### Features
+
+* ship prebuilt N-API binaries instead of compiling on install ([ab44ae1](https://github.com/kuzzleio/boost-geospatial-index/commit/ab44ae14d180c1346e3e20ea3e07ac6300143fec)), closes [kuzzleio/kuzzle#2839](https://github.com/kuzzleio/kuzzle/issues/2839)
+
+### Bug Fixes
+
+* pin the C++ standard to gnu++17 ([e92210f](https://github.com/kuzzleio/boost-geospatial-index/commit/e92210f259d02ab978368c5f3cc28887accdebdb))
+
 ## 1.4.0 (2025-12-02)
 
 * Merge branch 'beta' into 1-dev ([594fad0](https://github.com/kuzzleio/boost-geospatial-index/commit/594fad0))

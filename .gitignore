@@ -24,3 +24,6 @@ build/
 
 # dependencies
 node_modules/
+
+# prebuilt binaries, built by CI and published inside the tarball
+prebuilds/

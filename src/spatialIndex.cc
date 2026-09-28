@@ -3,193 +3,175 @@
 namespace bg = boost::geometry;
 namespace bgi = boost::geometry::index;
 
-Nan::Persistent<v8::Function> SpatialIndex::constructor;
+/*
+ * Converts a JS [lat, lon] pair into a boost point
+ * boost coordinates are Long,Lat, not Lat,Long
+ */
+static point toPoint(Napi::Value value) {
+  Napi::Object p = value.As<Napi::Object>();
+
+  return point(
+    p.Get(1u).ToNumber().DoubleValue(),
+    p.Get(0u).ToNumber().DoubleValue());
+}
+
+static double toDouble(Napi::Value value) {
+  return value.ToNumber().DoubleValue();
+}
 
 /*
  * Module initialization
  */
-NAN_MODULE_INIT(SpatialIndex::init) {
-  v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
-  tpl->SetClassName(Nan::New("SpatialIndex").ToLocalChecked());
-  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+Napi::Object SpatialIndex::init(Napi::Env env, Napi::Object exports) {
+  Napi::Function func = DefineClass(env, "SpatialIndex", {
+    InstanceMethod("addBBox", &SpatialIndex::addBBox),
+    InstanceMethod("addCircle", &SpatialIndex::addCircle),
+    InstanceMethod("addAnnulus", &SpatialIndex::addAnnulus),
+    InstanceMethod("addPolygon", &SpatialIndex::addPolygon),
+    InstanceMethod("queryPoint", &SpatialIndex::queryPoint),
+    InstanceMethod("queryIntersect", &SpatialIndex::queryIntersect),
+    InstanceMethod("remove", &SpatialIndex::remove),
+  });
 
-  Nan::SetPrototypeMethod(tpl, "addBBox", addBBox);
-  Nan::SetPrototypeMethod(tpl, "addCircle", addCircle);
-  Nan::SetPrototypeMethod(tpl, "addAnnulus", addAnnulus);
-  Nan::SetPrototypeMethod(tpl, "addPolygon", addPolygon);
-  Nan::SetPrototypeMethod(tpl, "queryPoint", queryPoint);
-  Nan::SetPrototypeMethod(tpl, "queryIntersect", queryIntersect);
-  Nan::SetPrototypeMethod(tpl, "remove", remove);
-
-  constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
-  Nan::Set(target, Nan::New("SpatialIndex").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
+  exports.Set("SpatialIndex", func);
+  return exports;
 }
 
-SpatialIndex::SpatialIndex() {
-
-}
-
-SpatialIndex::~SpatialIndex() {
-
-}
-
-NAN_METHOD(SpatialIndex::New) {
-  if (info.IsConstructCall()) {
-    SpatialIndex *obj = new SpatialIndex();
-    obj->Wrap(info.This());
-    info.GetReturnValue().Set(info.This());
-  } else {
-    const int argc = 1;
-    v8::Local<v8::Value> argv[argc] = {info[0]};
-    v8::Local<v8::Function> cons = Nan::New(constructor);
-    info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
-  }
+SpatialIndex::SpatialIndex(const Napi::CallbackInfo& info)
+  : Napi::ObjectWrap<SpatialIndex>(info) {
 }
 
 /*
  * Adds a bounding box to the tree
  * addBBox(id, min_lat, min_lon, max_lat, max_lon)
  */
-NAN_METHOD(SpatialIndex::addBBox) {
-  Nan::HandleScope scope;
-  SpatialIndex *spi = Nan::ObjectWrap::Unwrap<SpatialIndex>(info.This());
+Napi::Value SpatialIndex::addBBox(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
 
   // Checks the id parameter validity
-  if (info[0]->IsUndefined() || !info[0]->IsString()) {
-    info.GetReturnValue().Set(false);
-    return;
+  if (!info[0].IsString()) {
+    return Napi::Boolean::New(env, false);
   }
 
-  std::string id = toString(info.GetIsolate(), info[0]);
+  std::string id = info[0].As<Napi::String>().Utf8Value();
 
   // Checks the coordinates parameters validity
-  for(int i = 1; i < 5; i++) {
-    if (info[i]->IsUndefined() || !info[i]->IsNumber()) {
-      info.GetReturnValue().Set(false);
-      return;
+  for(size_t i = 1; i < 5; i++) {
+    if (!info[i].IsNumber()) {
+      return Napi::Boolean::New(env, false);
     }
   }
 
   // boost coordinates are Long,Lat, not Lat,Long
   box bbox(
-    point(Nan::To<double>(info[2]).FromJust(), Nan::To<double>(info[1]).FromJust()),
-    point(Nan::To<double>(info[4]).FromJust(), Nan::To<double>(info[3]).FromJust())
+    point(toDouble(info[2]), toDouble(info[1])),
+    point(toDouble(info[4]), toDouble(info[3]))
   );
 
   std::shared_ptr<Shape> shape(new Shape(id, bbox));
 
-  spi->rtree.insert(std::make_pair(bbox, shape));
-  spi->repository.insert(std::make_pair(id, shape));
+  rtree.insert(std::make_pair(bbox, shape));
+  repository.insert(std::make_pair(id, shape));
+
+  return env.Undefined();
 }
 
 /*
  * Adds a circle to the tree
  * addCircle(id, lat, lon, radius)
  */
-NAN_METHOD(SpatialIndex::addCircle) {
-  Nan::HandleScope scope;
-  SpatialIndex *spi = Nan::ObjectWrap::Unwrap<SpatialIndex>(info.This());
+Napi::Value SpatialIndex::addCircle(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
 
   // Checks the id parameter validity
-  if (info[0]->IsUndefined() || !info[0]->IsString()) {
-    info.GetReturnValue().Set(false);
-    return;
+  if (!info[0].IsString()) {
+    return Napi::Boolean::New(env, false);
   }
 
-  std::string id = toString(info.GetIsolate(), info[0]);
+  std::string id = info[0].As<Napi::String>().Utf8Value();
 
   // Checks the coordinates parameters validity
-  for(int i = 1; i < 4; i++) {
-    if (info[i]->IsUndefined() || !info[i]->IsNumber()) {
-      info.GetReturnValue().Set(false);
-      return;
+  for(size_t i = 1; i < 4; i++) {
+    if (!info[i].IsNumber()) {
+      return Napi::Boolean::New(env, false);
     }
   }
 
   // boost coordinates are Long,Lat, not Lat,Long
-  point p(Nan::To<double>(info[2]).FromJust(), Nan::To<double>(info[1]).FromJust());
+  point p(toDouble(info[2]), toDouble(info[1]));
 
-  std::shared_ptr<Shape> shape(new Shape(id, p, Nan::To<double>(info[3]).FromJust()));
+  std::shared_ptr<Shape> shape(new Shape(id, p, toDouble(info[3])));
 
-  spi->rtree.insert(std::make_pair(shape->getEnvelope(), shape));
-  spi->repository.insert(std::make_pair(id, shape));
+  rtree.insert(std::make_pair(shape->getEnvelope(), shape));
+  repository.insert(std::make_pair(id, shape));
+
+  return env.Undefined();
 }
 
 /*
  * Adds an annulus to the tree
  * addCircle(id, lat, lon, outerRadius, innerRadius)
  */
-NAN_METHOD(SpatialIndex::addAnnulus) {
-  Nan::HandleScope scope;
-  SpatialIndex *spi = Nan::ObjectWrap::Unwrap<SpatialIndex>(info.This());
+Napi::Value SpatialIndex::addAnnulus(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
 
   // Checks the id parameter validity
-  if (info[0]->IsUndefined() || !info[0]->IsString()) {
-    info.GetReturnValue().Set(false);
-    return;
+  if (!info[0].IsString()) {
+    return Napi::Boolean::New(env, false);
   }
 
-  std::string id = toString(info.GetIsolate(), info[0]);
+  std::string id = info[0].As<Napi::String>().Utf8Value();
 
   // Checks the coordinates parameters validity
-  for(int i = 1; i < 5; i++) {
-    if (info[i]->IsUndefined() || !info[i]->IsNumber()) {
-      info.GetReturnValue().Set(false);
-      return;
+  for(size_t i = 1; i < 5; i++) {
+    if (!info[i].IsNumber()) {
+      return Napi::Boolean::New(env, false);
     }
   }
 
   // boost coordinates are Long,Lat, not Lat,Long
-  point p(Nan::To<double>(info[2]).FromJust(), Nan::To<double>(info[1]).FromJust());
+  point p(toDouble(info[2]), toDouble(info[1]));
 
-  std::shared_ptr<Shape> shape(new Shape(id, p, Nan::To<double>(info[3]).FromJust(), Nan::To<double>(info[4]).FromJust()));
+  std::shared_ptr<Shape> shape(new Shape(id, p, toDouble(info[3]), toDouble(info[4])));
 
-  spi->rtree.insert(std::make_pair(shape->getEnvelope(), shape));
-  spi->repository.insert(std::make_pair(id, shape));
+  rtree.insert(std::make_pair(shape->getEnvelope(), shape));
+  repository.insert(std::make_pair(id, shape));
+
+  return env.Undefined();
 }
 
 /*
  * Adds a polygon to the tree
  * addPolygon(id, [[lat, lon], [lat, lon], [lat, lon], ...]])
  */
-NAN_METHOD(SpatialIndex::addPolygon) {
-  Nan::HandleScope scope;
-  SpatialIndex *spi = Nan::ObjectWrap::Unwrap<SpatialIndex>(info.This());
+Napi::Value SpatialIndex::addPolygon(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
 
   // Checks the id parameter validity
-  if (info[0]->IsUndefined() || !info[0]->IsString()) {
-    info.GetReturnValue().Set(false);
-    return;
+  if (!info[0].IsString()) {
+    return Napi::Boolean::New(env, false);
   }
 
-  std::string id = toString(info.GetIsolate(), info[0]);
+  std::string id = info[0].As<Napi::String>().Utf8Value();
 
   // Checks the coordinates parameters validity
-  if (info[1]->IsUndefined() || !info[1]->IsArray()) {
-    info.GetReturnValue().Set(false);
-    return;
+  if (!info[1].IsArray()) {
+    return Napi::Boolean::New(env, false);
   }
 
-  v8::Local<v8::Array> points = info[1].As<v8::Array>();
+  Napi::Array points = info[1].As<Napi::Array>();
   polygon pl;
 
-  // boost coordinates are Long,Lat, not Lat,Long
-  v8::Local<v8::Context> context = info.GetIsolate()->GetCurrentContext();
-  for(unsigned int i = 0; i < points->Length(); i++) {
-    v8::Local<v8::Array> p = points->Get(context, i)
-      .ToLocalChecked()
-      .As<v8::Array>();
-
-    pl.outer().push_back(
-      point(
-        Nan::To<double>(p->Get(context, 1).ToLocalChecked()).FromJust(),
-        Nan::To<double>(p->Get(context, 0).ToLocalChecked()).FromJust()));
+  for(uint32_t i = 0; i < points.Length(); i++) {
+    pl.outer().push_back(toPoint(points.Get(i)));
   }
 
   std::shared_ptr<Shape> shape(new Shape(id, pl));
 
-  spi->rtree.insert(std::make_pair(shape->getEnvelope(), shape));
-  spi->repository.insert(std::make_pair(id, shape));
+  rtree.insert(std::make_pair(shape->getEnvelope(), shape));
+  repository.insert(std::make_pair(id, shape));
+
+  return env.Undefined();
 }
 
 /*
@@ -198,32 +180,30 @@ NAN_METHOD(SpatialIndex::addPolygon) {
  *
  * Returns an array of matching ids as strings
  */
-NAN_METHOD(SpatialIndex::queryPoint) {
-  Nan::HandleScope scope;
-  SpatialIndex *spi = Nan::ObjectWrap::Unwrap<SpatialIndex>(info.This());
-  v8::Local<v8::Array> result = Nan::New<v8::Array>();
-  v8::Local<v8::Number> lat, lon;
+Napi::Value SpatialIndex::queryPoint(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  Napi::Array result = Napi::Array::New(env);
 
   // Checks the point coordinates parameter validity
-  if (info[0]->IsUndefined() || info[1]->IsUndefined() || !info[0]->IsNumber() || !info[1]->IsNumber()) {
-    info.GetReturnValue().Set(result);
-    return;
+  if (!info[0].IsNumber() || !info[1].IsNumber()) {
+    return result;
   }
 
-  lat = info[0].As<v8::Number>();
-  lon = info[1].As<v8::Number>();
+  double lat = info[0].As<Napi::Number>().DoubleValue();
+  double lon = info[1].As<Napi::Number>().DoubleValue();
 
-  point coordinates(lon->Value(), lat->Value());
+  point coordinates(lon, lat);
   std::vector<treeValue> found;
-  spi->rtree.query(bgi::covers(coordinates), std::back_inserter(found));
+  rtree.query(bgi::covers(coordinates), std::back_inserter(found));
 
+  uint32_t count = 0;
   for(std::vector<treeValue>::iterator it = found.begin(); it != found.end(); ++it) {
     if (it->second->covered(coordinates)) {
-      Nan::Set(result, result->Length(), Nan::New(it->second->getId()).ToLocalChecked());
+      result.Set(count++, Napi::String::New(env, it->second->getId()));
     }
   }
 
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
 /*
@@ -232,43 +212,33 @@ NAN_METHOD(SpatialIndex::queryPoint) {
  *
  * Returns an array of matching ids as strings
  */
-NAN_METHOD(SpatialIndex::queryIntersect) {
-  Nan::HandleScope scope;
-  SpatialIndex *spi = Nan::ObjectWrap::Unwrap<SpatialIndex>(info.This());
+Napi::Value SpatialIndex::queryIntersect(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  Napi::Array result = Napi::Array::New(env);
 
-  v8::Local<v8::Array> result = Nan::New<v8::Array>();
-  
   // Checks the coordinates parameters validity
-  if (info[0]->IsUndefined() || !info[0]->IsArray()) {
-    info.GetReturnValue().Set(result);
-    return;
+  if (!info[0].IsArray()) {
+    return result;
   }
 
-  v8::Local<v8::Array> points = info[0].As<v8::Array>();
+  Napi::Array points = info[0].As<Napi::Array>();
   polygon queryPoly;
 
-  // note: flip coordinates from lat,long to long,lat to abide by boost
-  v8::Local<v8::Context> context = info.GetIsolate()->GetCurrentContext();
-  for(unsigned int i = 0; i < points->Length(); i++) {
-    v8::Local<v8::Array> p = points->Get(context, i)
-      .ToLocalChecked()
-      .As<v8::Array>();
-
-    queryPoly.outer().push_back(
-      point(
-        Nan::To<double>(p->Get(context, 1).ToLocalChecked()).FromJust(),
-        Nan::To<double>(p->Get(context, 0).ToLocalChecked()).FromJust()));
+  // note: toPoint flips coordinates from lat,long to long,lat to abide by boost
+  for(uint32_t i = 0; i < points.Length(); i++) {
+    queryPoly.outer().push_back(toPoint(points.Get(i)));
   }
 
   std::vector<treeValue> found;
   //calling intersects here, pure inside polygon check would be covered_by
-  spi->rtree.query(bgi::intersects(queryPoly), std::back_inserter(found));
+  rtree.query(bgi::intersects(queryPoly), std::back_inserter(found));
 
+  uint32_t count = 0;
   for(std::vector<treeValue>::iterator it = found.begin(); it != found.end(); ++it) {
-      Nan::Set(result, result->Length(), Nan::New(it->second->getId()).ToLocalChecked());
+    result.Set(count++, Napi::String::New(env, it->second->getId()));
   }
 
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
 /*
@@ -277,31 +247,48 @@ NAN_METHOD(SpatialIndex::queryIntersect) {
  *
  * Returns a boolean
  */
-NAN_METHOD(SpatialIndex::remove) {
-  Nan::HandleScope scope;
-  SpatialIndex *spi = Nan::ObjectWrap::Unwrap<SpatialIndex>(info.This());
+Napi::Value SpatialIndex::remove(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
 
-  if (info[0]->IsUndefined() || !info[0]->IsString()) {
-    info.GetReturnValue().Set(false);
-    return;
+  if (!info[0].IsString()) {
+    return Napi::Boolean::New(env, false);
   }
 
-  std::string id = toString(info.GetIsolate(), info[0]);
-  std::unordered_map<std::string, std::shared_ptr<Shape> >::const_iterator found = spi->repository.find(id);
+  std::string id = info[0].As<Napi::String>().Utf8Value();
+  std::unordered_map<std::string, std::shared_ptr<Shape> >::const_iterator found = repository.find(id);
 
-  if (found == spi->repository.end()) {
-    info.GetReturnValue().Set(false);
-    return;
+  if (found == repository.end()) {
+    return Napi::Boolean::New(env, false);
   }
 
-  spi->rtree.remove(std::make_pair(found->second->getEnvelope(), found->second));
-  spi->repository.erase(id);
+  /*
+   The geographic R* tree occasionally fails to find an entry it holds when
+   asked to remove it (remove() then returns 0): the shape would stay in the
+   index and keep being returned by queries after its id is gone. When that
+   happens, rebuild the tree without it. It is rare (a fraction of a percent
+   of removals) and costs O(n log n) only then.
+   */
+  if (rtree.remove(std::make_pair(found->second->getEnvelope(), found->second)) == 0) {
+    std::vector<treeValue> kept;
+    kept.reserve(rtree.size());
 
-  info.GetReturnValue().Set(true);
+    for (rtreeType::const_iterator it = rtree.begin(); it != rtree.end(); ++it) {
+      if (it->second != found->second) {
+        kept.push_back(*it);
+      }
+    }
+
+    rtreeType rebuilt(kept.begin(), kept.end());
+    rtree.swap(rebuilt);
+  }
+
+  repository.erase(id);
+
+  return Napi::Boolean::New(env, true);
 }
 
-NAN_MODULE_INIT(init) {
-  SpatialIndex::init(target);
+Napi::Object init(Napi::Env env, Napi::Object exports) {
+  return SpatialIndex::init(env, exports);
 }
 
-NODE_MODULE(BoostSpatialIndex, init)
+NODE_API_MODULE(BoostSpatialIndex, init)
